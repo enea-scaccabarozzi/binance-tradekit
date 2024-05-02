@@ -5,7 +5,7 @@ import axios, {
   Method,
 } from 'axios';
 
-import { IProxyOptions, IProxyRotatorOptions } from '../../types/proxy';
+import { IProxyOptions, IProxyRotatorOptions } from '../../types/shared/proxy';
 
 export class ProxyRotator {
   private http: AxiosInstance = axios;

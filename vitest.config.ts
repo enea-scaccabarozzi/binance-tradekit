@@ -3,7 +3,10 @@ import { configDefaults, defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
-    exclude: [...configDefaults.exclude],
+    exclude: [...configDefaults.exclude, 'lib/**/*'],
     reporters: 'verbose',
+    coverage: {
+      exclude: [...configDefaults.exclude, 'lib/**/*'],
+    },
   },
 });
