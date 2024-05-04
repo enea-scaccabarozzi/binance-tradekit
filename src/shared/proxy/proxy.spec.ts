@@ -21,6 +21,12 @@ describe('ProxyRotator', () => {
       const rotator = new ProxyRotator({ proxies: testProxies });
       expect(rotator.getProxies()).toEqual(testProxies);
     });
+
+    it('should initialize with the given base instance', () => {
+      const baseInstance = axios;
+      const rotator = new ProxyRotator({ proxies: testProxies, baseInstance });
+      expect(rotator.getBaseInstance()).toBe(baseInstance);
+    });
   });
 
   describe('rotateProxy', () => {

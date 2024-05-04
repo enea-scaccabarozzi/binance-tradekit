@@ -8,7 +8,8 @@ export interface IStremClientOptions<RawData, RefinedData> {
       WebsocketEvent.message
     >]?: () => void | Promise<void>;
   } & {
+    error?: (error: Error) => void | Promise<void>;
     message: (data: RefinedData) => void | Promise<void>;
   };
-  adapter: (data: RawData) => RefinedData;
+  adapter: (data: RawData) => RefinedData | null;
 }

@@ -1,3 +1,4 @@
+import { ITradekitError } from './errors';
 export interface ITicker {
   symbol: string;
   datetime: Date;
@@ -19,22 +20,22 @@ export interface IPrice {
   price: number;
 }
 
-interface IBaseSubscriptionOptions<T> {
+export interface IBaseSubscriptionOptions<T> {
   cb: (data: T) => void | Promise<void>;
   onConnect?: () => void | Promise<void>;
   onClose?: () => void | Promise<void>;
+  onSubscribed?: () => void | Promise<void>;
+  onError?: (error: ITradekitError) => void | Promise<void>;
 }
 
 export interface IGetTikerOptions {
   symbol: string;
-  timeframe?: ITimeframe;
 }
 export type ISubscribeToTikerOptions = IGetTikerOptions &
   IBaseSubscriptionOptions<ITicker>;
 
 export interface IGetTikersOptions {
   symbols: string[];
-  timeframe?: ITimeframe;
 }
 export type ISubscribeToTikersOptions = IGetTikersOptions &
   IBaseSubscriptionOptions<ITicker[]>;
@@ -50,5 +51,5 @@ export type ISubscribeToPricesOptions = IGetPricesOptions &
 export type ITimeframe = '1m' | '5m' | '15m' | '30m' | '1h' | '4h' | '1d';
 export interface ITickerOrder {
   price: number;
-  volume: number;
+  size: number;
 }

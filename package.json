@@ -15,7 +15,8 @@
     "prepare": "husky install",
     "semantic-release": "semantic-release",
     "test:watch": "vitest --watch",
-    "test": "vitest --coverage",
+    "test": "vitest --coverage --project=unit",
+    "test:e2e": "vitest --project=e2e",
     "typecheck": "tsc --noEmit"
   },
   "repository": {
@@ -50,9 +51,11 @@
     "@ryansonshine/commitizen": "^4.2.8",
     "@ryansonshine/cz-conventional-changelog": "^3.3.4",
     "@types/node": "^20.12.7",
+    "@types/ws": "^8.5.10",
     "@typescript-eslint/eslint-plugin": "^4.22.0",
     "@typescript-eslint/parser": "^4.22.0",
     "@vitest/coverage-v8": "^1.5.3",
+    "@vitest/ui": "^1.6.0",
     "conventional-changelog-conventionalcommits": "^5.0.0",
     "eslint": "^7.25.0",
     "eslint-config-prettier": "^8.3.0",
@@ -122,6 +125,8 @@
   },
   "dependencies": {
     "axios": "^1.6.8",
-    "websocket-ts": "^2.1.5"
+    "neverthrow": "^6.2.1",
+    "websocket-ts": "^2.1.5",
+    "ws": "^8.17.0"
   }
 }

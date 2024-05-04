@@ -1,4 +1,4 @@
-export interface IBalance {
+export type IBalance = {
   datetime: Date;
   free: {
     [symbol: string]: number;
@@ -9,12 +9,18 @@ export interface IBalance {
   total: {
     [symbol: string]: number;
   };
-}
+} & {
+  [currency: string]: {
+    free: number;
+    used: number;
+    total: number;
+  };
+};
 
-export interface IGlobalBalance extends IBalance {
+export type IGlobalBalance = IBalance & {
   margin: IBalance;
   spot: IBalance;
-}
+};
 
 export interface IGetBalanceOptions {
   symbols?: string[];
