@@ -8,7 +8,6 @@ import {
   SubscribeToTikerOptions,
   SubscribeToTikersOptions,
 } from './tickers';
-import { ReadOnlyStremClient } from '../../shared/websocket';
 import { GetBalanceOptions, SetLeverageOptions } from './account';
 import { ClosePositionOptions, OpenPositionOptions } from './orders';
 
@@ -42,12 +41,8 @@ export interface Tradekit {
   /* Market Data */
   getTicker(opts: GetTikerOptions): Promise<TradekitResult<Ticker>>;
   getTickers(opts: GetTikersOptions): Promise<TradekitResult<Ticker[]>>;
-  subscribeToTicker(
-    opts: SubscribeToTikerOptions
-  ): TradekitResult<ReadOnlyStremClient<never, Ticker>>;
-  subscribeToTickers(
-    opts: SubscribeToTikersOptions
-  ): TradekitResult<ReadOnlyStremClient<never, Ticker[]>>;
+  subscribeToTicker(opts: SubscribeToTikerOptions): TradekitResult<never>;
+  subscribeToTickers(opts: SubscribeToTikersOptions): TradekitResult<never>;
 
   /* Account Data */
   getBalance(opts?: GetBalanceOptions): Promise<TradekitResult<Balances>>;

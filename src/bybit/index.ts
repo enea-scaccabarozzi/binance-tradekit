@@ -10,7 +10,6 @@ import {
   SubscribeToTikersOptions,
 } from '../types/shared/tickers';
 import { TradekitResult } from '../types/shared/errors';
-import { ReadOnlyStremClient } from '../shared/websocket';
 import { GetBalanceOptions, SetLeverageOptions } from '../types/shared/account';
 import {
   ClosePositionOptions,
@@ -31,7 +30,6 @@ export class Bybit extends BaseClass implements Tradekit {
     if (opts?.sandbox) this.exchange.setSandboxMode(true);
 
     this.exchange.options['defaultType'] = 'swap';
-    void this.exchange.loadMarkets(true);
   }
 
   public async getTicker({
@@ -62,7 +60,7 @@ export class Bybit extends BaseClass implements Tradekit {
 
   public subscribeToTicker(
     opts: SubscribeToTikerOptions
-  ): TradekitResult<ReadOnlyStremClient<never, ccxt.Ticker>> {
+  ): TradekitResult<never> {
     return err({
       reason: 'TRADEKIT_ERROR',
       info: {
@@ -74,7 +72,7 @@ export class Bybit extends BaseClass implements Tradekit {
 
   public subscribeToTickers(
     opts: SubscribeToTikersOptions
-  ): TradekitResult<ReadOnlyStremClient<never, ccxt.Ticker[]>> {
+  ): TradekitResult<never> {
     return err({
       reason: 'TRADEKIT_ERROR',
       info: {

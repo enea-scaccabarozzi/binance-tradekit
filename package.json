@@ -1,7 +1,7 @@
 {
-  "name": "typescript-npm-package-template",
-  "version": "0.0.0-development",
-  "description": "A template for creating npm packages using TypeScript and VSCode",
+  "name": "@enea-scaccabarozi/tradekits",
+  "version": "0.0.0",
+  "description": "A small library to interact with some cryptocurrency exchanges in a way that is convenient for my projects.",
   "main": "./lib/index.js",
   "type": "module",
   "files": [
@@ -21,32 +21,28 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ryansonshine/typescript-npm-package-template.git"
+    "url": "git+https://github.com/enea-scaccabarozzi/tradekits.git"
   },
   "license": "MIT",
   "author": {
     "name": "Enea Scaccabarozzi",
-    "email": "ryansonshine@users.noreply.github.com",
-    "url": "https://github.com/ryansonshine"
+    "email": "me@eneascaccabarozzi.xyz",
+    "url": "https://eneascaccabarozzi.xyz"
   },
   "engines": {
     "node": ">=12.0"
   },
   "keywords": [
-    "boilerplate",
-    "template",
-    "typescript",
-    "vscode",
-    "jest",
-    "husky",
-    "commitizen",
-    "semantic-release",
-    "codecov"
+    "cryptocurrency",
+    "exchange",
+    "api",
+    "ccxt",
+    "bybit"
   ],
   "bugs": {
-    "url": "https://github.com/ryansonshine/typescript-npm-package-template/issues"
+    "url": "https://github.com/enea-scaccabarozzi/tradekits/issues"
   },
-  "homepage": "https://github.com/ryansonshine/typescript-npm-package-template#readme",
+  "homepage": "https://github.com/enea-scaccabarozzi/tradekits#readme",
   "devDependencies": {
     "@ryansonshine/commitizen": "^4.2.8",
     "@ryansonshine/cz-conventional-changelog": "^3.3.4",
