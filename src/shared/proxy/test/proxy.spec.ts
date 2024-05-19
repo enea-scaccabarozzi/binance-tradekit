@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-import { ProxyRotator } from '.';
+import { ProxyRotator } from '..';
 import axios from 'axios';
 
 vi.mock('axios', () => ({ default: vi.fn() }));

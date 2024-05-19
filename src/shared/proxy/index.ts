@@ -5,21 +5,16 @@ import axios, {
   Method,
 } from 'axios';
 
-import { IProxyOptions, IProxyRotatorOptions } from '../../types/shared/proxy';
+import { ProxyOptions, ProxyRotatorOptions } from '../../types/shared/proxy';
 
 export class ProxyRotator {
   private http: AxiosInstance = axios;
-  private proxies: IProxyOptions[] = [];
+  private proxies: ProxyOptions[] = [];
   private currentProxyIndex = 0;
 
-  constructor({ proxies, baseInstance }: IProxyRotatorOptions) {
+  constructor({ proxies, baseInstance }: ProxyRotatorOptions) {
     if (baseInstance) this.http = baseInstance;
     if (proxies) this.proxies = proxies;
-  }
-
-  private rotateProxy(): void {
-    const nextIndex = (this.currentProxyIndex + 1) % this.proxies.length;
-    this.currentProxyIndex = nextIndex;
   }
 
   private async request<T = unknown>(
@@ -72,19 +67,19 @@ export class ProxyRotator {
     return this.request<T>('delete', url, config);
   }
 
-  public setProxies(proxies: IProxyOptions[]): void {
+  public setProxies(proxies: ProxyOptions[]): void {
     this.proxies = proxies;
     this.currentProxyIndex = 0;
   }
 
-  public getCurrentProxy(): IProxyOptions | undefined {
+  public getCurrentProxy(): ProxyOptions | undefined {
     if (this.proxies.length === 0) {
       return undefined;
     }
     return this.proxies[this.currentProxyIndex];
   }
 
-  public getProxies(): IProxyOptions[] {
+  public getProxies(): ProxyOptions[] {
     return this.proxies;
   }
 
@@ -94,5 +89,10 @@ export class ProxyRotator {
 
   public getBaseInstance(): AxiosInstance {
     return this.http;
+  }
+
+  public rotateProxy(): void {
+    const nextIndex = (this.currentProxyIndex + 1) % this.proxies.length;
+    this.currentProxyIndex = nextIndex;
   }
 }

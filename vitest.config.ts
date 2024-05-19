@@ -16,6 +16,8 @@ export default defineConfig({
         'lib/**/*',
         '.eslintrc.cjs',
         'vitest.workspace.ts',
+        '**/*.spec.ts',
+        '**/*.e2e.ts',
       ],
     },
     watch: process.env.CI !== 'true',
