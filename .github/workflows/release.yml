@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  release:
+  setup-and-release:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -19,7 +19,8 @@ jobs:
       - name: Create .env file from secret
         run: echo "${{ secrets.ENV_FILE }}" > .env
 
-      - name: Reusable workflow
-        uses: ryansonshine/ryansonshine/.github/workflows/release.yml@main
-        secrets:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+  release:
+    needs: setup-and-release
+    uses: ryansonshine/ryansonshine/.github/workflows/release.yml@main
+    secrets:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -3,7 +3,7 @@ name: Pull Request
 on: [pull_request]
 
 jobs:
-  build:
+  setup-and-build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -12,5 +12,6 @@ jobs:
       - name: Create .env file from secret
         run: echo "${{ secrets.ENV_FILE }}" > .env
 
-      - name: Reusable workflow
-        uses: ryansonshine/ryansonshine/.github/workflows/pr.yml@main
+  build:
+    needs: setup-and-build
+    uses: ryansonshine/ryansonshine/.github/workflows/pr.yml@main
