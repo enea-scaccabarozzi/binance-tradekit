@@ -1,12 +1,22 @@
-# Reusable workflow for releases; to eject, you can replace this file with
-# https://github.com/ryansonshine/ryansonshine/blob/main/.github/workflows/release.yml
 name: Release
+
 on:
   push:
     branches:
       - main
+
 jobs:
+  setup-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Create .env file from secret
+        run: echo "${{ secrets.ENV_FILE }}" > .env
+
   release:
+    needs: setup-and-release
     permissions:
       contents: write
       issues: write
