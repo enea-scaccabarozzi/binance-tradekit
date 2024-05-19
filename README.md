@@ -51,7 +51,7 @@ Lorem ipsum.
 [downloads-img]:https://img.shields.io/npm/dt/tradekits
 [downloads-url]:https://www.npmtrends.com/tradekits
 [npm-img]:https://img.shields.io/npm/v/tradekits
-[npm-url]:https://www.npmjs.com/package/tradekits
+[npm-url]:https://www.npmjs.com/package/@enea-scaccabarozzi/tradekits
 [issues-img]:https://img.shields.io/github/issues/enea-scaccabarozzi/tradekits
 [issues-url]:https://github.com/enea-scaccabarozzi/tradekits/issues
 [codecov-img]:https://codecov.io/gh/enea-scaccabarozzi/tradekits/branch/main/graph/badge.svg

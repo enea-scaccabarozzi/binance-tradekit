@@ -6,17 +6,17 @@ on:
       - main
 
 jobs:
-  # setup-and-release:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout repository
-  #       uses: actions/checkout@v2
+  setup-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-  #     - name: Create .env file from secret
-  #       run: echo "${{ secrets.ENV_FILE }}" > .env
+      - name: Create .env file from secret
+        run: echo "${{ secrets.ENV_FILE }}" > .env
 
   release:
-    # needs: setup-and-release
+    needs: setup-and-release
     permissions:
       contents: write
       issues: write
