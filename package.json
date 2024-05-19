@@ -1,5 +1,5 @@
 {
-  "name": "@enea-scaccabarozi/tradekits",
+  "name": "@enea-scaccabarozzi/tradekits",
   "version": "0.0.0",
   "description": "A small library to interact with some cryptocurrency exchanges in a way that is convenient for my projects.",
   "main": "./lib/index.js",
