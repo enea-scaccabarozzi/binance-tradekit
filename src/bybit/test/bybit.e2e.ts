@@ -101,10 +101,7 @@ const bybit = new Bybit({
     secret: API_SECRET,
   },
   sandbox: true, // Use sandbox mode
-  proxies: [
-    parseProxyUrl(process.env.PROXY_URL_1 as string),
-    parseProxyUrl(process.env.PROXY_URL_2 as string),
-  ],
+  proxies: [parseProxyUrl(process.env.PROXY_URL_1 as string)],
 });
 
 describe('Bybit Class Integration Tests', () => {
