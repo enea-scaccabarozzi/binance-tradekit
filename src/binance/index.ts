@@ -30,6 +30,7 @@ export class Binance extends BaseClass implements Tradekit {
     if (opts?.sandbox) this.exchange.setSandboxMode(true);
 
     this.exchange.options['defaultType'] = 'swap';
+    this.syncProxy();
   }
 
   public async getTicker({
