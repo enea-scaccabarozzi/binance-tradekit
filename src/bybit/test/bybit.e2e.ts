@@ -3,6 +3,7 @@ import { z } from 'zod';
 import 'dotenv/config';
 
 import { Bybit } from '../index';
+import { ProxyOptions, ProxyProtocol } from '../../types/shared/proxy';
 
 // Define schemas using zod
 const TickerSchema = z.object({
@@ -81,12 +82,29 @@ if (!API_KEY || !API_SECRET) {
   );
 }
 
+const parseProxyUrl = (url: string): ProxyOptions => {
+  const parsedUrl = new URL(url);
+  return {
+    protocol: parsedUrl.protocol.slice(0, -1) as ProxyProtocol,
+    host: parsedUrl.hostname,
+    port: Number(parsedUrl.port),
+    auth: {
+      username: parsedUrl.username,
+      password: parsedUrl.password,
+    },
+  };
+};
+
 const bybit = new Bybit({
   auth: {
     key: API_KEY,
     secret: API_SECRET,
   },
   sandbox: true, // Use sandbox mode
+  proxies: [
+    parseProxyUrl(process.env.PROXY_URL_1 as string),
+    parseProxyUrl(process.env.PROXY_URL_2 as string),
+  ],
 });
 
 describe('Bybit Class Integration Tests', () => {

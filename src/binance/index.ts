@@ -249,7 +249,16 @@ export class Binance extends BaseClass implements Tradekit {
   private syncProxy() {
     this.rotateProxy();
     this.getCurrentProxy().match(
-      proxy => (this.exchange.httpProxy = `http://${proxy.host}:${proxy.port}`),
+      proxy => {
+        this.exchange.httpProxy = `http://${proxy.host}:${proxy.port}`;
+        if (proxy.auth === undefined) return;
+        const auth = Buffer.from(
+          `${proxy.auth.username}:${proxy.auth.password}`
+        ).toString('base64');
+        this.exchange.headers = {
+          'Proxy-Authorization': `Basic ${auth}`,
+        };
+      },
       () => (this.exchange.proxy = undefined)
     );
   }

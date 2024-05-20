@@ -3,6 +3,7 @@ import * as ccxt from 'ccxt';
 import { TradekitError } from '../types/shared/errors';
 
 export const handleError = (e: unknown): TradekitError => {
+  console.error('Error:', e);
   if (e instanceof ccxt.NetworkError) {
     if (e instanceof ccxt.RateLimitExceeded) return { reason: 'RATE_LIMIT' };
     else
