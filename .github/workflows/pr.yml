@@ -3,15 +3,24 @@ name: Pull Request
 on: [pull_request]
 
 jobs:
-  setup-and-build:
+  build:
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
 
+    strategy:
+      matrix:
+        node-version: [16.x, 18.x]
+
+    steps:
+      - uses: actions/checkout@v3
       - name: Create .env file from secret
         run: echo "${{ secrets.ENV_FILE }}" > .env
-
-  build:
-    needs: setup-and-build
-    uses: ryansonshine/ryansonshine/.github/workflows/pr.yml@main
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: npm ci
+      - run: npm run build --if-present
+      - run: npm test
+      - run: npm run test:e2e
+      - name: Upload Code Coverage
+        uses: codecov/codecov-action@v3.1.0

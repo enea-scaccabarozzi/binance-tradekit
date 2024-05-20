@@ -29,7 +29,7 @@
 To install Tradekit, run:
 
 ```bash
-npm install tradekit
+npm install @enea-scaccabarozzi/tradekits
 ```
 
 ## Usage
