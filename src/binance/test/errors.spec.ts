@@ -22,13 +22,13 @@ describe('handleError', () => {
 
   it('should return EXCHANGE_ERROR for ccxt.ExchangeError with bybit prefix', () => {
     const error = new ccxt.ExchangeError(
-      'bybit {"retCode":"10001","retMsg":"Invalid API key"}'
+      'binance {"code":10001,"msg":"Invalid API key"}'
     );
     const result = handleError(error);
     expect(result).toEqual<TradekitError>({
       reason: 'EXCHANGE_ERROR',
       info: {
-        exchange: 'bybit',
+        exchange: 'binance',
         code: '10001',
         msg: 'Invalid API key',
       },

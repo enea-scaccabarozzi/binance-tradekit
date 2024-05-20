@@ -194,7 +194,6 @@ describe('Binance', () => {
         free: { BTC: 1, ETH: 2 },
         used: { BTC: 0.5, ETH: 1 },
         total: { BTC: 1.5, ETH: 3 },
-        debt: {},
         info: {},
         datetime: '',
       } as unknown as ccxt.Balances;
@@ -209,7 +208,6 @@ describe('Binance', () => {
         free: { BTC: 1 },
         used: { BTC: 0.5 },
         total: { BTC: 1.5 },
-        debt: {},
         info: {},
         datetime: '',
         BTC: balance.BTC,
