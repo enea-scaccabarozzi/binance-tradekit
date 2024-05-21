@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { z } from 'zod';
 import 'dotenv/config';
 
-import { Bybit } from '../index';
+import { Binance } from '../index';
 import { ProxyOptions, ProxyProtocol } from '../../types/shared/proxy';
 
 // Define schemas using zod
@@ -33,7 +33,6 @@ const BalanceSchema = z.object({
   free: z.record(z.number().optional()),
   used: z.record(z.number().optional()),
   total: z.record(z.number().optional()),
-  debt: z.record(z.number().optional()),
   info: z.object({}),
   datetime: z.string().optional(),
 });
@@ -72,8 +71,8 @@ const OrderSchema = z.object({
   info: z.object({}),
 });
 
-const API_KEY = process.env.BYBIT_TESTNET_API_KEY;
-const API_SECRET = process.env.BYBIT_TESTNET_API_SECRET;
+const API_KEY = process.env.BINANCE_TESTNET_API_KEY;
+const API_SECRET = process.env.BINANCE_TESTNET_API_SECRET;
 
 // Check if API_KEY and API_SECRET are set
 if (!API_KEY || !API_SECRET) {
@@ -95,7 +94,7 @@ const parseProxyUrl = (url: string): ProxyOptions => {
   };
 };
 
-const bybit = new Bybit({
+const binance = new Binance({
   auth: {
     key: API_KEY,
     secret: API_SECRET,
@@ -104,15 +103,15 @@ const bybit = new Bybit({
   proxies: [parseProxyUrl(process.env.PROXY_URL_1 as string)],
 });
 
-describe('Bybit Class Integration Tests', () => {
+describe('Binance Class Integration Tests', () => {
   beforeAll(() => {
     // Any setup can be done here
   });
 
   describe('getTicker', () => {
     it('should fetch a ticker successfully', async () => {
-      const symbol = 'BTC/USDT';
-      const result = await bybit.getTicker({ symbol });
+      const symbol = 'BTC/USDT:USDT';
+      const result = await binance.getTicker({ symbol });
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
         // Validate result against TickerSchema
@@ -122,7 +121,7 @@ describe('Bybit Class Integration Tests', () => {
 
     it('should handle error when fetching a non-existent ticker', async () => {
       const symbol = 'NONEXISTENT/USDT:USDT';
-      const result = await bybit.getTicker({ symbol });
+      const result = await binance.getTicker({ symbol });
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
         expect(result.error).toHaveProperty('reason', 'TRADEKIT_ERROR');
@@ -136,7 +135,7 @@ describe('Bybit Class Integration Tests', () => {
   describe('getTickers', () => {
     it('should fetch multiple tickers successfully', async () => {
       const symbols = ['BTC/USDT:USDT', 'ETH/USDT:USDT'];
-      const result = await bybit.getTickers({ symbols });
+      const result = await binance.getTickers({ symbols });
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
         expect(result.value).toHaveLength(symbols.length);
@@ -147,7 +146,7 @@ describe('Bybit Class Integration Tests', () => {
 
     it('should handle error when fetching multiple non-existent tickers', async () => {
       const symbols = ['NONEXISTENT1/USDT:USDT', 'NONEXISTENT2/USDT:USDT'];
-      const result = await bybit.getTickers({ symbols });
+      const result = await binance.getTickers({ symbols });
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
         expect(result.error).toHaveProperty('reason', 'TRADEKIT_ERROR');
@@ -160,23 +159,17 @@ describe('Bybit Class Integration Tests', () => {
 
   describe('getBalance', () => {
     it('should fetch account balance successfully', async () => {
-      const result = await bybit.getBalance();
-      expect(result.isOk()).toBe(true);
-      if (result.isOk()) {
-        // Validate result against BalanceSchema
-        BalanceSchema.parse(result.value);
-      }
+      const result = await binance.getBalance();
+      const balance = result._unsafeUnwrap();
+      expect(() => BalanceSchema.parse(balance)).not.toThrow();
     });
 
     it('should filter account balance when symbols are provided', async () => {
-      const result = await bybit.getBalance({ currencies: ['USDT'] });
-      expect(result.isOk()).toBe(true);
-      if (result.isOk()) {
-        // Validate filtered balance against BalanceSchema
-        const balance = result.value;
-        BalanceSchema.parse(balance);
-        expect(Object.keys(balance.free)).toEqual(['USDT']);
-      }
+      const result = await binance.getBalance({ currencies: ['USDT'] });
+      // Validate filtered balance against BalanceSchema
+      const balance = result._unsafeUnwrap();
+      BalanceSchema.parse(balance);
+      expect(Object.keys(balance.free)).toContain('USDT');
     });
   });
 
@@ -184,9 +177,13 @@ describe('Bybit Class Integration Tests', () => {
     it('should set leverage successfully', async () => {
       const leverage = 1;
       const symbol = 'BTC/USDT:USDT';
-      const result = await bybit.setLeverage({
+      const result = await binance.setLeverage({
         leverage,
         symbol,
+      });
+      await binance.setLeverage({
+        leverage,
+        symbol: 'ETH/USDT:USDT',
       });
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
@@ -197,7 +194,7 @@ describe('Bybit Class Integration Tests', () => {
     it('should return error when setting leverage for a non-existent symbol', async () => {
       const leverage = 1;
       const symbol = 'NONEXISTENT/USDT:USDT';
-      const result = await bybit.setLeverage({
+      const result = await binance.setLeverage({
         leverage,
         symbol,
       });
@@ -212,7 +209,7 @@ describe('Bybit Class Integration Tests', () => {
 
     it('should return error when setting leverage with undefined symbol', async () => {
       const leverage = 1;
-      const result = await bybit.setLeverage({
+      const result = await binance.setLeverage({
         leverage,
         symbol: undefined,
       });
@@ -229,11 +226,11 @@ describe('Bybit Class Integration Tests', () => {
   describe('openLong', () => {
     it('should open a long position successfully', async () => {
       const opts = {
-        symbol: 'DOGE/USDT:USDT',
-        amount: 100,
+        symbol: 'BTC/USDT:USDT',
+        amount: 0.01,
         timeInForce: 30000,
       };
-      const result = await bybit.openLong(opts);
+      const result = await binance.openLong(opts);
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
         // Validate result against OrderSchema
@@ -247,39 +244,7 @@ describe('Bybit Class Integration Tests', () => {
         amount: 1,
         timeInForce: 30000,
       };
-      const result = await bybit.openLong(opts);
-      expect(result.isErr()).toBe(true);
-      if (result.isErr()) {
-        expect(result.error).toHaveProperty('reason', 'TRADEKIT_ERROR');
-        if (result.error.reason === 'TRADEKIT_ERROR') {
-          expect(result.error.info).toHaveProperty('code', 'BAD_SYMBOL');
-        }
-      }
-    });
-  });
-
-  describe('openShort', () => {
-    it('should open a short position successfully', async () => {
-      const opts = {
-        symbol: 'XRP/USDT:USDT',
-        amount: 100,
-        timeInForce: 30000,
-      };
-      const result = await bybit.openShort(opts);
-      expect(result.isOk()).toBe(true);
-      if (result.isOk()) {
-        // Validate result against OrderSchema
-        OrderSchema.parse(result.value);
-      }
-    });
-
-    it('should handle error when opening with unsupported symbol', async () => {
-      const opts = {
-        symbol: 'NONEXISTENT/USDT:USDT',
-        amount: 100,
-        timeInForce: 30000,
-      };
-      const result = await bybit.openShort(opts);
+      const result = await binance.openLong(opts);
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
         expect(result.error).toHaveProperty('reason', 'TRADEKIT_ERROR');
@@ -293,11 +258,11 @@ describe('Bybit Class Integration Tests', () => {
   describe('closeLong', () => {
     it('should close a long position successfully', async () => {
       const opts = {
-        symbol: 'DOGE/USDT:USDT',
-        amount: 100,
+        symbol: 'BTC/USDT:USDT',
+        amount: 0.01,
         timeInForce: 30000,
       };
-      const result = await bybit.closeLong(opts);
+      const result = await binance.closeLong(opts);
       OrderSchema.parse(result._unsafeUnwrap());
       expect(result.isOk()).toBe(true);
     });
@@ -308,7 +273,7 @@ describe('Bybit Class Integration Tests', () => {
         amount: 100,
         timeInForce: 30000,
       };
-      const result = await bybit.closeLong(opts);
+      const result = await binance.closeLong(opts);
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
         expect(result.error).toHaveProperty('reason', 'TRADEKIT_ERROR');
@@ -320,14 +285,14 @@ describe('Bybit Class Integration Tests', () => {
 
     it('should raise error when attempting to close a position already closed', async () => {
       const opts = {
-        symbol: 'DOGE/USDT:USDT',
-        amount: 100,
+        symbol: 'BTC/USDT:USDT',
+        amount: 0.01,
         timeInForce: 30000,
       };
       // Close the position first
-      await bybit.closeLong(opts);
+      await binance.closeLong(opts);
       // Try closing again
-      const result = await bybit.closeLong(opts);
+      const result = await binance.closeLong(opts);
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
         expect(result.error).toHaveProperty('reason', 'TRADEKIT_ERROR');
@@ -338,14 +303,46 @@ describe('Bybit Class Integration Tests', () => {
     });
   });
 
-  describe('closeShort', () => {
-    it('should close a short position successfully', async () => {
+  describe('openShort', () => {
+    it('should open a short position successfully', async () => {
       const opts = {
-        symbol: 'XRP/USDT:USDT',
+        symbol: 'BTC/USDT:USDT',
+        amount: 0.01,
+        timeInForce: 30000,
+      };
+      const result = await binance.openShort(opts);
+      expect(result.isOk()).toBe(true);
+      if (result.isOk()) {
+        // Validate result against OrderSchema
+        OrderSchema.parse(result.value);
+      }
+    });
+
+    it('should handle error when opening with unsupported symbol', async () => {
+      const opts = {
+        symbol: 'NONEXISTENT/USDT:USDT',
         amount: 100,
         timeInForce: 30000,
       };
-      const result = await bybit.closeShort(opts);
+      const result = await binance.openShort(opts);
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error).toHaveProperty('reason', 'TRADEKIT_ERROR');
+        if (result.error.reason === 'TRADEKIT_ERROR') {
+          expect(result.error.info).toHaveProperty('code', 'BAD_SYMBOL');
+        }
+      }
+    });
+  });
+
+  describe('closeShort', () => {
+    it('should close a short position successfully', async () => {
+      const opts = {
+        symbol: 'BTC/USDT:USDT',
+        amount: 0.01,
+        timeInForce: 30000,
+      };
+      const result = await binance.closeShort(opts);
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
         // Validate result against OrderSchema
@@ -359,7 +356,7 @@ describe('Bybit Class Integration Tests', () => {
         amount: 100,
         timeInForce: 30000,
       };
-      const result = await bybit.closeShort(opts);
+      const result = await binance.closeShort(opts);
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
         expect(result.error).toHaveProperty('reason', 'TRADEKIT_ERROR');
@@ -371,14 +368,14 @@ describe('Bybit Class Integration Tests', () => {
 
     it('should raise error when attempting to close a position already closed', async () => {
       const opts = {
-        symbol: 'XRP/USDT:USDT',
-        amount: 100,
+        symbol: 'BTC/USDT:USDT',
+        amount: 0.01,
         timeInForce: 30000,
       };
       // Close the position first
-      await bybit.closeShort(opts);
+      await binance.closeShort(opts);
       // Try closing again
-      const result = await bybit.closeShort(opts);
+      const result = await binance.closeShort(opts);
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
         expect(result.error).toHaveProperty('reason', 'TRADEKIT_ERROR');

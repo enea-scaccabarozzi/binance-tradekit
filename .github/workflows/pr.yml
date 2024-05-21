@@ -5,12 +5,26 @@ on: [pull_request]
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
 
+    strategy:
+      matrix:
+        node-version: [16.x, 18.x]
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
       - name: Create .env file from secret
         run: echo "${{ secrets.ENV_FILE }}" > .env
-
-      - name: Reusable workflow
-        uses: ryansonshine/ryansonshine/.github/workflows/pr.yml@main
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm test
+      - run: pnpm run test:e2e
+      - name: Upload Code Coverage
+        uses: codecov/codecov-action@v3.1.0

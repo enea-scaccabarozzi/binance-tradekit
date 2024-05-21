@@ -5,7 +5,7 @@ export default defineConfig({
   test: {
     exclude: [
       ...configDefaults.exclude,
-      'lib/**/*',
+      'dist/**/*',
       '.eslintrc.cjs',
       'vitest.workspace.ts',
     ],
@@ -13,7 +13,7 @@ export default defineConfig({
     coverage: {
       exclude: [
         ...configDefaults.exclude,
-        'lib/**/*',
+        'dist/**/*',
         '.eslintrc.cjs',
         'vitest.workspace.ts',
         '**/*.spec.ts',

@@ -7,19 +7,35 @@ on:
 
 jobs:
   release:
+    name: Release
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      issues: write
-      pull-requests: write
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: lts/*
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
       - name: Create .env file from secret
         run: echo "${{ secrets.ENV_FILE }}" > .env
-
-      - name: Reusable workflow
-        uses: ryansonshine/ryansonshine/.github/workflows/release.yml@main
-        secrets:
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build
+        run: pnpm run build
+      - name: Test
+        run: pnpm test
+      - name: Test E2E
+        run: pnpm run test:e2e
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npx semantic-release
+      - name: Upload Code Coverage
+        uses: codecov/codecov-action@v3.1.0

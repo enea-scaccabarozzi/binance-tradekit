@@ -17,8 +17,8 @@ import {
 } from '../types/shared/orders';
 import { handleError } from './errors';
 
-export class Bybit extends BaseClass implements Tradekit {
-  protected exchange = new ccxt.bybit();
+export class Binance extends BaseClass implements Tradekit {
+  protected exchange = new ccxt.binance();
 
   constructor(opts?: TradekitOptions) {
     super(opts);
@@ -94,7 +94,6 @@ export class Bybit extends BaseClass implements Tradekit {
           free: {} as ccxt.Balance,
           used: {} as ccxt.Balance,
           total: {} as ccxt.Balance,
-          debt: {} as ccxt.Balance,
           info: balance.info,
           datetime: balance.datetime,
         };
@@ -107,8 +106,6 @@ export class Bybit extends BaseClass implements Tradekit {
               balance.used[currency as keyof ccxt.Balance];
             filtered.total[currency as keyof ccxt.Balance] =
               balance.total[currency as keyof ccxt.Balance];
-            filtered.debt[currency as keyof ccxt.Balance] =
-              balance.debt[currency as keyof ccxt.Balance];
           }
         }
 
@@ -141,7 +138,7 @@ export class Bybit extends BaseClass implements Tradekit {
     } catch (e) {
       if (e instanceof ccxt.ExchangeError) {
         try {
-          const payload = JSON.parse(e.message.replace('bybit ', '')) as {
+          const payload = JSON.parse(e.message.replace('binance ', '')) as {
             retCode: number;
           };
           if (payload.retCode === 110043) {
@@ -180,7 +177,7 @@ export class Bybit extends BaseClass implements Tradekit {
       const timeOut = timeInForce ?? 30000;
       while (Date.now() - startTime < timeOut) {
         await new Promise(resolve => setTimeout(resolve, 1000));
-        const orders = await this.exchange.fetchOpenOrders();
+        const orders = await this.exchange.fetchOpenOrders(symbol);
         if (orders.find(o => o.id === order.id) === undefined) {
           return ok(order);
         }
@@ -230,7 +227,7 @@ export class Bybit extends BaseClass implements Tradekit {
       const timeOut = timeInForce ?? 30000;
       while (Date.now() - startTime < timeOut) {
         await new Promise(resolve => setTimeout(resolve, 1000));
-        const orders = await this.exchange.fetchOpenOrders();
+        const orders = await this.exchange.fetchOpenOrders(symbol);
         if (orders.find(o => o.id === order.id) === undefined) {
           return ok(order);
         }
