@@ -157,6 +157,112 @@ describe('Binance Class Integration Tests', () => {
     });
   });
 
+  // describe('subscribeToTicker', () => {
+  //   it('should retrive ticker events successfully', async () => {
+  //     const symbol = 'BTC/USDT:USDT';
+  //     const onUpdate = vi.fn();
+  //     const onClose = vi.fn();
+  //     const onSubscription = vi.fn();
+  //     const onError = vi.fn();
+  //     const opts = {
+  //       symbol,
+  //       onUpdate,
+  //       onClose,
+  //       onSubscription,
+  //       onError,
+  //     };
+  //     const result = binance.subscribeToTicker(opts);
+  //     expect(result).toBeDefined();
+  //     await new Promise(resolve => setTimeout(resolve, 6000));
+  //     expect(onUpdate).toHaveBeenCalled();
+  //     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  //     const ticker = onUpdate.mock.calls[0][0];
+  //     TickerSchema.parse(ticker);
+  //     expect(onSubscription).toBeCalledTimes(1);
+  //     result.close();
+  //     await new Promise(resolve => setTimeout(resolve, 200));
+  //     expect(onClose).toBeCalledTimes(1);
+  //     expect(onError).not.toBeCalled();
+  //   });
+
+  //   it('should handle error when subcribing to non-existent tickers', async () => {
+  //     const symbol = 'NONEXISTING/USDT:USDT';
+  //     const onUpdate = vi.fn();
+  //     const onClose = vi.fn();
+  //     const onSubscription = vi.fn();
+  //     const onError = vi.fn();
+  //     const opts = {
+  //       symbol,
+  //       onUpdate,
+  //       onClose,
+  //       onSubscription,
+  //       onError,
+  //     };
+  //     const result = binance.subscribeToTicker(opts);
+  //     expect(result).toBeDefined();
+  //     await new Promise(resolve => setTimeout(resolve, 6000));
+  //     expect(onSubscription).toBeCalledTimes(1);
+  //     expect(onError).not.toBeCalled();
+  //     result.close();
+  //     await new Promise(resolve => setTimeout(resolve, 200));
+  //     expect(onClose).toBeCalledTimes(1);
+  //     expect(onUpdate).not.toBeCalled();
+  //   });
+  // });
+
+  // describe('subscribeToTickers', () => {
+  //   it('should retrive tickers events successfully', async () => {
+  //     const symbols = ['BTC/USDT:USDT', 'ETH/USDT:USDT'];
+  //     const onUpdate = vi.fn();
+  //     const onClose = vi.fn();
+  //     const onSubscription = vi.fn();
+  //     const onError = vi.fn();
+  //     const opts = {
+  //       symbols,
+  //       onUpdate,
+  //       onClose,
+  //       onSubscription,
+  //       onError,
+  //     };
+  //     const result = binance.subscribeToTickers(opts);
+  //     expect(result).toBeDefined();
+  //     await new Promise(resolve => setTimeout(resolve, 6000));
+  //     expect(onUpdate).toHaveBeenCalled();
+  //     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  //     const ticker = onUpdate.mock.calls[0][0];
+  //     TickerSchema.parse(ticker);
+  //     expect(onSubscription).toBeCalledTimes(2);
+  //     result.close();
+  //     await new Promise(resolve => setTimeout(resolve, 200));
+  //     expect(onClose).toBeCalledTimes(2);
+  //     expect(onError).not.toBeCalled();
+  //   });
+
+  //   it('should handle error when subcribing to non-existent tickers', async () => {
+  //     const symbols = ['NONEXISTING/USDT:USDT', 'NONEXISTING2/USDT:USDT'];
+  //     const onUpdate = vi.fn();
+  //     const onClose = vi.fn();
+  //     const onSubscription = vi.fn();
+  //     const onError = vi.fn();
+  //     const opts = {
+  //       symbols,
+  //       onUpdate,
+  //       onClose,
+  //       onSubscription,
+  //       onError,
+  //     };
+  //     const result = binance.subscribeToTickers(opts);
+  //     expect(result).toBeDefined();
+  //     await new Promise(resolve => setTimeout(resolve, 6000));
+  //     expect(onSubscription).toBeCalledTimes(2);
+  //     expect(onError).not.toBeCalled();
+  //     result.close();
+  //     await new Promise(resolve => setTimeout(resolve, 200));
+  //     expect(onClose).toBeCalledTimes(1);
+  //     expect(onUpdate).not.toBeCalled();
+  //   });
+  // });
+
   describe('getBalance', () => {
     it('should fetch account balance successfully', async () => {
       const result = await binance.getBalance();

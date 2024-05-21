@@ -11,7 +11,7 @@ export default defineWorkspace([
     test: {
       name: 'e2e',
       include: ['**/*.e2e.ts'],
-      testTimeout: 5000,
+      testTimeout: 10000,
     },
   },
 ]);

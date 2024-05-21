@@ -36,7 +36,6 @@ export class BinanceStreamClient implements StreamClient {
       if (opts.onSubscription) opts.onSubscription();
     });
     this.ws.on('error', err => {
-      console.log(err);
       const error = this.handleErros(err);
       if (opts.onError) opts.onError(error);
     });

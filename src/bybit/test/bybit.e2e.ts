@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, vi } from 'vitest';
 import { z } from 'zod';
 import 'dotenv/config';
 
@@ -155,6 +155,112 @@ describe('Bybit Class Integration Tests', () => {
           expect(result.error.info).toHaveProperty('code', 'BAD_SYMBOL');
         }
       }
+    });
+  });
+
+  describe('subscribeToTicker', () => {
+    it('should retrive ticker events successfully', async () => {
+      const symbol = 'BTC/USDT:USDT';
+      const onUpdate = vi.fn();
+      const onClose = vi.fn();
+      const onSubscription = vi.fn();
+      const onError = vi.fn();
+      const opts = {
+        symbol,
+        onUpdate,
+        onClose,
+        onSubscription,
+        onError,
+      };
+      const result = bybit.subscribeToTicker(opts);
+      expect(result).toBeDefined();
+      await new Promise(resolve => setTimeout(resolve, 2500));
+      expect(onUpdate).toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const ticker = onUpdate.mock.calls[0][0];
+      TickerSchema.parse(ticker);
+      expect(onSubscription).toBeCalledTimes(1);
+      result.close();
+      await new Promise(resolve => setTimeout(resolve, 500));
+      expect(onClose).toBeCalledTimes(1);
+      expect(onError).not.toBeCalled();
+    });
+
+    it('should handle error when subcribing to non-existent tickers', async () => {
+      const symbol = 'NONEXISTING/USDT:USDT';
+      const onUpdate = vi.fn();
+      const onClose = vi.fn();
+      const onSubscription = vi.fn();
+      const onError = vi.fn();
+      const opts = {
+        symbol,
+        onUpdate,
+        onClose,
+        onSubscription,
+        onError,
+      };
+      const result = bybit.subscribeToTicker(opts);
+      expect(result).toBeDefined();
+      await new Promise(resolve => setTimeout(resolve, 2500));
+      expect(onSubscription).toBeCalledTimes(1);
+      expect(onError).toBeCalled();
+      result.close();
+      await new Promise(resolve => setTimeout(resolve, 500));
+      expect(onClose).toBeCalledTimes(1);
+      expect(onUpdate).not.toBeCalled();
+    });
+  });
+
+  describe('subscribeToTickers', () => {
+    it('should retrive tickers events successfully', async () => {
+      const symbols = ['BTC/USDT:USDT', 'ETH/USDT:USDT'];
+      const onUpdate = vi.fn();
+      const onClose = vi.fn();
+      const onSubscription = vi.fn();
+      const onError = vi.fn();
+      const opts = {
+        symbols,
+        onUpdate,
+        onClose,
+        onSubscription,
+        onError,
+      };
+      const result = bybit.subscribeToTickers(opts);
+      expect(result).toBeDefined();
+      await new Promise(resolve => setTimeout(resolve, 2500));
+      expect(onUpdate).toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const ticker = onUpdate.mock.calls[0][0];
+      TickerSchema.parse(ticker);
+      expect(onSubscription).toBeCalledTimes(1);
+      result.close();
+      await new Promise(resolve => setTimeout(resolve, 500));
+      expect(onClose).toBeCalledTimes(1);
+      expect(onError).not.toBeCalled();
+    });
+
+    it('should handle error when subcribing to non-existent tickers', async () => {
+      const symbols = ['NONEXISTING/USDT:USDT', 'NONEXISTING2/USDT:USDT'];
+      const onUpdate = vi.fn();
+      const onClose = vi.fn();
+      const onSubscription = vi.fn();
+      const onError = vi.fn();
+      const opts = {
+        symbols,
+        onUpdate,
+        onClose,
+        onSubscription,
+        onError,
+      };
+      const result = bybit.subscribeToTickers(opts);
+      expect(result).toBeDefined();
+      await new Promise(resolve => setTimeout(resolve, 2500));
+      expect(onSubscription).toBeCalledTimes(1);
+      expect(onError).toBeCalled();
+      result.close();
+      await new Promise(resolve => setTimeout(resolve, 500));
+      expect(onClose).toBeCalledTimes(1);
+      expect(onUpdate).not.toBeCalled();
     });
   });
 
