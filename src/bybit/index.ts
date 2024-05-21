@@ -1,4 +1,4 @@
-import * as ccxt from 'ccxt';
+import ccxt, { Ticker, Balance, Balances, ExchangeError, Order } from 'ccxt';
 import { ok, err } from 'neverthrow';
 
 import { BaseClass } from '../shared/base';
@@ -37,7 +37,7 @@ export class Bybit extends BaseClass implements Tradekit {
 
   public async getTicker({
     symbol,
-  }: GetTikerOptions): Promise<TradekitResult<ccxt.Ticker>> {
+  }: GetTikerOptions): Promise<TradekitResult<Ticker>> {
     try {
       const tiker = await this.exchange.fetchTicker(symbol);
       return ok(tiker);
@@ -50,7 +50,7 @@ export class Bybit extends BaseClass implements Tradekit {
 
   public async getTickers({
     symbols,
-  }: GetTikersOptions): Promise<TradekitResult<ccxt.Ticker[]>> {
+  }: GetTikersOptions): Promise<TradekitResult<Ticker[]>> {
     try {
       const tikers = await this.exchange.fetchTickers(symbols);
       return ok(Object.values(tikers));
@@ -79,30 +79,30 @@ export class Bybit extends BaseClass implements Tradekit {
 
   public async getBalance(
     opts?: GetBalanceOptions
-  ): Promise<TradekitResult<ccxt.Balances>> {
+  ): Promise<TradekitResult<Balances>> {
     try {
       const balance = await this.exchange.fetchBalance();
 
       if (opts?.currencies) {
-        const filtered: ccxt.Balances = {
-          free: {} as ccxt.Balance,
-          used: {} as ccxt.Balance,
-          total: {} as ccxt.Balance,
-          debt: {} as ccxt.Balance,
+        const filtered: Balances = {
+          free: {} as Balance,
+          used: {} as Balance,
+          total: {} as Balance,
+          debt: {} as Balance,
           info: balance.info,
           datetime: balance.datetime,
         };
 
         for (const currency of opts.currencies) {
           if (currency in balance.free) {
-            filtered.free[currency as keyof ccxt.Balance] =
-              balance.free[currency as keyof ccxt.Balance];
-            filtered.used[currency as keyof ccxt.Balance] =
-              balance.used[currency as keyof ccxt.Balance];
-            filtered.total[currency as keyof ccxt.Balance] =
-              balance.total[currency as keyof ccxt.Balance];
-            filtered.debt[currency as keyof ccxt.Balance] =
-              balance.debt[currency as keyof ccxt.Balance];
+            filtered.free[currency as keyof Balance] =
+              balance.free[currency as keyof Balance];
+            filtered.used[currency as keyof Balance] =
+              balance.used[currency as keyof Balance];
+            filtered.total[currency as keyof Balance] =
+              balance.total[currency as keyof Balance];
+            filtered.debt[currency as keyof Balance] =
+              balance.debt[currency as keyof Balance];
           }
         }
 
@@ -133,7 +133,7 @@ export class Bybit extends BaseClass implements Tradekit {
       await this.exchange.setLeverage(opts.leverage, opts.symbol);
       return ok(opts.leverage);
     } catch (e) {
-      if (e instanceof ccxt.ExchangeError) {
+      if (e instanceof ExchangeError) {
         try {
           const payload = JSON.parse(e.message.replace('bybit ', '')) as {
             retCode: number;
@@ -154,20 +154,20 @@ export class Bybit extends BaseClass implements Tradekit {
 
   public async openLong(
     opts: OpenPositionOptions
-  ): Promise<TradekitResult<ccxt.Order>> {
+  ): Promise<TradekitResult<Order>> {
     return this.openPosition(opts, 'buy');
   }
 
   public async openShort(
     opts: OpenPositionOptions
-  ): Promise<TradekitResult<ccxt.Order>> {
+  ): Promise<TradekitResult<Order>> {
     return this.openPosition(opts, 'sell');
   }
 
   private async openPosition(
     { symbol, amount, timeInForce }: OpenPositionOptions,
     side: 'buy' | 'sell'
-  ): Promise<TradekitResult<ccxt.Order>> {
+  ): Promise<TradekitResult<Order>> {
     try {
       const order = await this.exchange.createMarketOrder(symbol, side, amount);
       const startTime = Date.now();
@@ -196,20 +196,20 @@ export class Bybit extends BaseClass implements Tradekit {
 
   public async closeLong(
     opts: ClosePositionOptions
-  ): Promise<TradekitResult<ccxt.Order>> {
+  ): Promise<TradekitResult<Order>> {
     return this.closePosition(opts, 'sell');
   }
 
   public async closeShort(
     opts: ClosePositionOptions
-  ): Promise<TradekitResult<ccxt.Order>> {
+  ): Promise<TradekitResult<Order>> {
     return this.closePosition(opts, 'buy');
   }
 
   private async closePosition(
     { symbol, amount, timeInForce }: ClosePositionOptions,
     side: 'buy' | 'sell'
-  ): Promise<TradekitResult<ccxt.Order>> {
+  ): Promise<TradekitResult<Order>> {
     try {
       const order = await this.exchange.createMarketOrder(
         symbol,

@@ -1,5 +1,5 @@
 import { Result } from 'neverthrow';
-import * as ccxt from 'ccxt';
+import { BaseError } from 'ccxt';
 
 // Base interface for all types of errors
 type ErrorReason =
@@ -65,7 +65,7 @@ interface TradekitCCXTError extends TradekitErrorBase {
   info: {
     code: string;
     msg: string;
-    original: ccxt.BaseError;
+    original: BaseError;
   };
 }
 

@@ -1,18 +1,25 @@
 import { describe, it, expect } from 'vitest';
-import * as ccxt from 'ccxt';
+import {
+  RateLimitExceeded,
+  NetworkError,
+  ExchangeError,
+  BadSymbol,
+  InvalidOrder,
+  BaseError,
+} from 'ccxt';
 
 import { handleError } from '../errors';
 import { TradekitError } from '../../types/shared/errors';
 
 describe('handleError', () => {
-  it('should return RATE_LIMIT for ccxt.RateLimitExceeded', () => {
-    const error = new ccxt.RateLimitExceeded('Rate limit exceeded');
+  it('should return RATE_LIMIT for RateLimitExceeded', () => {
+    const error = new RateLimitExceeded('Rate limit exceeded');
     const result = handleError(error);
     expect(result).toEqual<TradekitError>({ reason: 'RATE_LIMIT' });
   });
 
-  it('should return NETWORK_ERROR for ccxt.NetworkError', () => {
-    const error = new ccxt.NetworkError('Network error occurred');
+  it('should return NETWORK_ERROR for NetworkError', () => {
+    const error = new NetworkError('Network error occurred');
     const result = handleError(error);
     expect(result).toEqual<TradekitError>({
       reason: 'NETWORK_ERROR',
@@ -20,8 +27,8 @@ describe('handleError', () => {
     });
   });
 
-  it('should return EXCHANGE_ERROR for ccxt.ExchangeError with binance prefix', () => {
-    const error = new ccxt.ExchangeError(
+  it('should return EXCHANGE_ERROR for ExchangeError with binance prefix', () => {
+    const error = new ExchangeError(
       'binance {"code":10001,"msg":"Invalid API key"}'
     );
     const result = handleError(error);
@@ -35,8 +42,8 @@ describe('handleError', () => {
     });
   });
 
-  it('should return TRADEKIT_ERROR for ccxt.BadSymbol', () => {
-    const error = new ccxt.BadSymbol('Bad symbol error');
+  it('should return TRADEKIT_ERROR for BadSymbol', () => {
+    const error = new BadSymbol('Bad symbol error');
     const result = handleError(error);
     expect(result).toEqual<TradekitError>({
       reason: 'TRADEKIT_ERROR',
@@ -47,8 +54,8 @@ describe('handleError', () => {
     });
   });
 
-  it('should return TRADEKIT_ERROR for ccxt.InvalidOrder', () => {
-    const error = new ccxt.InvalidOrder('Invalid order error');
+  it('should return TRADEKIT_ERROR for InvalidOrder', () => {
+    const error = new InvalidOrder('Invalid order error');
     const result = handleError(error);
     expect(result).toEqual<TradekitError>({
       reason: 'TRADEKIT_ERROR',
@@ -60,7 +67,7 @@ describe('handleError', () => {
   });
 
   it('should return TRADEKIT_ERROR for binance with specific code -2022', () => {
-    const error = new ccxt.ExchangeError(
+    const error = new ExchangeError(
       'binance {"code":-2022,"msg":"Order would immediately trigger"}'
     );
     const result = handleError(error);
@@ -73,8 +80,8 @@ describe('handleError', () => {
     });
   });
 
-  it('should return CCXT_ERROR for ccxt.BaseError', () => {
-    const error = new ccxt.BaseError('Base error occurred');
+  it('should return CCXT_ERROR for BaseError', () => {
+    const error = new BaseError('Base error occurred');
     const result = handleError(error);
     expect(result).toEqual<TradekitError>({
       reason: 'CCXT_ERROR',
