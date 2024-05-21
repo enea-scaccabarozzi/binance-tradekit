@@ -16,6 +16,8 @@ import {
   OpenPositionOptions,
 } from '../types/shared/orders';
 import { handleError } from './errors';
+import { BybitStreamClient } from './websoket';
+import { syncCCXTProxy } from '../shared/proxy/sync';
 
 export class Bybit extends BaseClass implements Tradekit {
   protected exchange = new ccxt.bybit();
@@ -59,27 +61,19 @@ export class Bybit extends BaseClass implements Tradekit {
     }
   }
 
-  public subscribeToTicker(
-    opts: SubscribeToTikerOptions
-  ): TradekitResult<never> {
-    return err({
-      reason: 'TRADEKIT_ERROR',
-      info: {
-        code: 'NOT_IMPLEMENTED',
-        msg: 'This method is not implemented yet.',
-      },
+  public subscribeToTicker(opts: SubscribeToTikerOptions): BybitStreamClient {
+    return new BybitStreamClient({
+      ...opts,
+      testnet: this.sandbox,
+      symbols: [opts.symbol],
     });
   }
 
-  public subscribeToTickers(
-    opts: SubscribeToTikersOptions
-  ): TradekitResult<never> {
-    return err({
-      reason: 'TRADEKIT_ERROR',
-      info: {
-        code: 'NOT_IMPLEMENTED',
-        msg: 'This method is not implemented yet.',
-      },
+  public subscribeToTickers(opts: SubscribeToTikersOptions): BybitStreamClient {
+    return new BybitStreamClient({
+      ...opts,
+      testnet: this.sandbox,
+      symbols: [...opts.symbols],
     });
   }
 
@@ -254,14 +248,7 @@ export class Bybit extends BaseClass implements Tradekit {
     this.rotateProxy();
     this.getCurrentProxy().match(
       proxy => {
-        this.exchange.httpProxy = `http://${proxy.host}:${proxy.port}`;
-        if (proxy.auth === undefined) return;
-        const auth = Buffer.from(
-          `${proxy.auth.username}:${proxy.auth.password}`
-        ).toString('base64');
-        this.exchange.headers = {
-          'Proxy-Authorization': `Basic ${auth}`,
-        };
+        this.exchange = syncCCXTProxy(this.exchange, proxy);
       },
       () => (this.exchange.proxy = undefined)
     );

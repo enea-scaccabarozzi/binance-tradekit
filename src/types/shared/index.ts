@@ -10,6 +10,7 @@ import {
 } from './tickers';
 import { GetBalanceOptions, SetLeverageOptions } from './account';
 import { ClosePositionOptions, OpenPositionOptions } from './orders';
+import { StreamClient } from './websocket';
 
 export interface TradekitOptions {
   proxies?: ProxyOptions[];
@@ -41,8 +42,8 @@ export interface Tradekit {
   /* Market Data */
   getTicker(opts: GetTikerOptions): Promise<TradekitResult<Ticker>>;
   getTickers(opts: GetTikersOptions): Promise<TradekitResult<Ticker[]>>;
-  subscribeToTicker(opts: SubscribeToTikerOptions): TradekitResult<never>;
-  subscribeToTickers(opts: SubscribeToTikersOptions): TradekitResult<never>;
+  subscribeToTicker(opts: SubscribeToTikerOptions): StreamClient;
+  subscribeToTickers(opts: SubscribeToTikersOptions): StreamClient;
 
   /* Account Data */
   getBalance(opts?: GetBalanceOptions): Promise<TradekitResult<Balances>>;

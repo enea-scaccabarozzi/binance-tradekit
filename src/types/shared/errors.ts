@@ -32,7 +32,7 @@ interface TradekitWebSocketError extends TradekitErrorBase {
   reason: 'WEB_SOCKET_ERROR';
   info: {
     msg: string;
-    code: number;
+    code: string;
     connId: string;
   };
 }

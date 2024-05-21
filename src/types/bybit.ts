@@ -4,7 +4,7 @@ interface BybitWssUpdateBase {
   ts: number;
 }
 
-interface BybitWssUpdateSnapshot extends BybitWssUpdateBase {
+export interface BybitWssUpdateSnapshot extends BybitWssUpdateBase {
   type: 'snapshot';
   data: {
     symbol: string;

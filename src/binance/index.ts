@@ -16,6 +16,8 @@ import {
   OpenPositionOptions,
 } from '../types/shared/orders';
 import { handleError } from './errors';
+import { syncCCXTProxy } from '../shared/proxy/sync';
+import { BinanceStreamClient } from './websoket';
 
 export class Binance extends BaseClass implements Tradekit {
   protected exchange = new ccxt.binance();
@@ -59,27 +61,19 @@ export class Binance extends BaseClass implements Tradekit {
     }
   }
 
-  public subscribeToTicker(
-    opts: SubscribeToTikerOptions
-  ): TradekitResult<never> {
-    return err({
-      reason: 'TRADEKIT_ERROR',
-      info: {
-        code: 'NOT_IMPLEMENTED',
-        msg: 'This method is not implemented yet.',
-      },
+  public subscribeToTicker(opts: SubscribeToTikerOptions): BinanceStreamClient {
+    return new BinanceStreamClient({
+      ...opts,
+      symbols: [opts.symbol],
     });
   }
 
   public subscribeToTickers(
     opts: SubscribeToTikersOptions
-  ): TradekitResult<never> {
-    return err({
-      reason: 'TRADEKIT_ERROR',
-      info: {
-        code: 'NOT_IMPLEMENTED',
-        msg: 'This method is not implemented yet.',
-      },
+  ): BinanceStreamClient {
+    return new BinanceStreamClient({
+      ...opts,
+      symbols: [...opts.symbols],
     });
   }
 
@@ -129,7 +123,7 @@ export class Binance extends BaseClass implements Tradekit {
           reason: 'TRADEKIT_ERROR',
           info: {
             code: 'BAD_SYMBOL',
-            msg: 'Unable to set global leverage for bybit. Please provide a symbol.',
+            msg: 'Unable to set global leverage for binance. Please provide a symbol.',
           },
         });
       }
@@ -251,14 +245,7 @@ export class Binance extends BaseClass implements Tradekit {
     this.rotateProxy();
     this.getCurrentProxy().match(
       proxy => {
-        this.exchange.httpProxy = `http://${proxy.host}:${proxy.port}`;
-        if (proxy.auth === undefined) return;
-        const auth = Buffer.from(
-          `${proxy.auth.username}:${proxy.auth.password}`
-        ).toString('base64');
-        this.exchange.headers = {
-          'Proxy-Authorization': `Basic ${auth}`,
-        };
+        this.exchange = syncCCXTProxy(this.exchange, proxy);
       },
       () => (this.exchange.proxy = undefined)
     );
