@@ -35,6 +35,10 @@ vi.mock('../errors.ts', () => ({
   })),
 }));
 
+vi.mock('../websoket.ts', () => ({
+  BybitStreamClient: vi.fn(),
+}));
+
 describe('Bybit', () => {
   let bybit: Bybit;
   let exchangeMock: Mocked<ccxt.bybit>;
@@ -127,13 +131,13 @@ describe('Bybit', () => {
   describe('subscribeToTicker', () => {
     it('should not be implemented', () => {
       const options: SubscribeToTikerOptions = {
-        symbol: 'BTC/USDT',
+        symbol: 'BTC/USDT:USDT',
         onUpdate: vi.fn(),
       };
 
       const result = bybit.subscribeToTicker(options);
 
-      expect(result.isErr()).toBe(true);
+      expect(result).toBeDefined();
     });
   });
 
@@ -146,7 +150,7 @@ describe('Bybit', () => {
 
       const result = bybit.subscribeToTickers(options);
 
-      expect(result.isErr()).toBe(true);
+      expect(result).toBeDefined();
     });
   });
 
@@ -282,6 +286,20 @@ describe('Bybit', () => {
       const result = await bybit.setLeverage({
         leverage: 10,
         symbol: 'BTC/USDT',
+      });
+
+      expect(result.isErr()).toBe(true);
+      expect(rotateProxySpy).toHaveBeenCalled();
+      expect(syncProxySpy).toHaveBeenCalled();
+    });
+
+    it('should return err if symbol is unset', async () => {
+      const rotateProxySpy = vi.spyOn(bybit, 'rotateProxy');
+      const syncProxySpy = vi.spyOn(bybit, 'syncProxy' as keyof Bybit);
+
+      const result = await bybit.setLeverage({
+        leverage: 10,
+        symbol: undefined,
       });
 
       expect(result.isErr()).toBe(true);

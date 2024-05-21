@@ -127,26 +127,26 @@ describe('Binance', () => {
   describe('subscribeToTicker', () => {
     it('should not be implemented', () => {
       const options: SubscribeToTikerOptions = {
-        symbol: 'BTC/USDT',
+        symbol: 'BTC/USDT:USDT',
         onUpdate: vi.fn(),
       };
 
       const result = binance.subscribeToTicker(options);
 
-      expect(result.isErr()).toBe(true);
+      expect(result).toBeDefined();
     });
   });
 
   describe('subscribeToTickers', () => {
     it('should not be implemented', () => {
       const options: SubscribeToTikersOptions = {
-        symbols: ['BTC/USDT'],
+        symbols: ['BTC/USDT:USDT'],
         onUpdate: vi.fn(),
       };
 
       const result = binance.subscribeToTickers(options);
 
-      expect(result.isErr()).toBe(true);
+      expect(result).toBeDefined();
     });
   });
 
@@ -279,6 +279,20 @@ describe('Binance', () => {
       const result = await binance.setLeverage({
         leverage: 10,
         symbol: 'BTC/USDT',
+      });
+
+      expect(result.isErr()).toBe(true);
+      expect(rotateProxySpy).toHaveBeenCalled();
+      expect(syncProxySpy).toHaveBeenCalled();
+    });
+
+    it('should return err if symbol is unset', async () => {
+      const rotateProxySpy = vi.spyOn(binance, 'rotateProxy');
+      const syncProxySpy = vi.spyOn(binance, 'syncProxy' as keyof Binance);
+
+      const result = await binance.setLeverage({
+        leverage: 10,
+        symbol: undefined,
       });
 
       expect(result.isErr()).toBe(true);

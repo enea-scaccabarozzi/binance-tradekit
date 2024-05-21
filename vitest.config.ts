@@ -18,6 +18,7 @@ export default defineConfig({
         'vitest.workspace.ts',
         '**/*.spec.ts',
         '**/*.e2e.ts',
+        'src/index.ts',
       ],
     },
     watch: process.env.CI !== 'true',

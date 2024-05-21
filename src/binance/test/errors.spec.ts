@@ -20,7 +20,7 @@ describe('handleError', () => {
     });
   });
 
-  it('should return EXCHANGE_ERROR for ccxt.ExchangeError with bybit prefix', () => {
+  it('should return EXCHANGE_ERROR for ccxt.ExchangeError with binance prefix', () => {
     const error = new ccxt.ExchangeError(
       'binance {"code":10001,"msg":"Invalid API key"}'
     );
@@ -31,6 +31,44 @@ describe('handleError', () => {
         exchange: 'binance',
         code: '10001',
         msg: 'Invalid API key',
+      },
+    });
+  });
+
+  it('should return TRADEKIT_ERROR for ccxt.BadSymbol', () => {
+    const error = new ccxt.BadSymbol('Bad symbol error');
+    const result = handleError(error);
+    expect(result).toEqual<TradekitError>({
+      reason: 'TRADEKIT_ERROR',
+      info: {
+        code: 'BAD_SYMBOL',
+        msg: 'Bad symbol error',
+      },
+    });
+  });
+
+  it('should return TRADEKIT_ERROR for ccxt.InvalidOrder', () => {
+    const error = new ccxt.InvalidOrder('Invalid order error');
+    const result = handleError(error);
+    expect(result).toEqual<TradekitError>({
+      reason: 'TRADEKIT_ERROR',
+      info: {
+        code: 'INVALID_ORDER',
+        msg: 'Invalid order error',
+      },
+    });
+  });
+
+  it('should return TRADEKIT_ERROR for binance with specific code -2022', () => {
+    const error = new ccxt.ExchangeError(
+      'binance {"code":-2022,"msg":"Order would immediately trigger"}'
+    );
+    const result = handleError(error);
+    expect(result).toEqual<TradekitError>({
+      reason: 'TRADEKIT_ERROR',
+      info: {
+        code: 'INVALID_ORDER',
+        msg: 'Order would immediately trigger',
       },
     });
   });
