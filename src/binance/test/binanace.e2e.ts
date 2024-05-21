@@ -226,8 +226,8 @@ describe('Binance Class Integration Tests', () => {
   describe('openLong', () => {
     it('should open a long position successfully', async () => {
       const opts = {
-        symbol: 'ETH/USDT:USDT',
-        amount: 0.1,
+        symbol: 'BTC/USDT:USDT',
+        amount: 0.01,
         timeInForce: 30000,
       };
       const result = await binance.openLong(opts);
@@ -250,6 +250,54 @@ describe('Binance Class Integration Tests', () => {
         expect(result.error).toHaveProperty('reason', 'TRADEKIT_ERROR');
         if (result.error.reason === 'TRADEKIT_ERROR') {
           expect(result.error.info).toHaveProperty('code', 'BAD_SYMBOL');
+        }
+      }
+    });
+  });
+
+  describe('closeLong', () => {
+    it('should close a long position successfully', async () => {
+      const opts = {
+        symbol: 'BTC/USDT:USDT',
+        amount: 0.01,
+        timeInForce: 30000,
+      };
+      const result = await binance.closeLong(opts);
+      OrderSchema.parse(result._unsafeUnwrap());
+      expect(result.isOk()).toBe(true);
+    });
+
+    it('should raise error when closing with unsupported symbol', async () => {
+      const opts = {
+        symbol: 'NONEXISTENT/USDT:USDT',
+        amount: 100,
+        timeInForce: 30000,
+      };
+      const result = await binance.closeLong(opts);
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error).toHaveProperty('reason', 'TRADEKIT_ERROR');
+        if (result.error.reason === 'TRADEKIT_ERROR') {
+          expect(result.error.info).toHaveProperty('code', 'BAD_SYMBOL');
+        }
+      }
+    });
+
+    it('should raise error when attempting to close a position already closed', async () => {
+      const opts = {
+        symbol: 'BTC/USDT:USDT',
+        amount: 0.01,
+        timeInForce: 30000,
+      };
+      // Close the position first
+      await binance.closeLong(opts);
+      // Try closing again
+      const result = await binance.closeLong(opts);
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error).toHaveProperty('reason', 'TRADEKIT_ERROR');
+        if (result.error.reason === 'TRADEKIT_ERROR') {
+          expect(result.error.info).toHaveProperty('code', 'INVALID_ORDER');
         }
       }
     });
@@ -282,54 +330,6 @@ describe('Binance Class Integration Tests', () => {
         expect(result.error).toHaveProperty('reason', 'TRADEKIT_ERROR');
         if (result.error.reason === 'TRADEKIT_ERROR') {
           expect(result.error.info).toHaveProperty('code', 'BAD_SYMBOL');
-        }
-      }
-    });
-  });
-
-  describe('closeLong', () => {
-    it('should close a long position successfully', async () => {
-      const opts = {
-        symbol: 'ETH/USDT:USDT',
-        amount: 0.1,
-        timeInForce: 30000,
-      };
-      const result = await binance.closeLong(opts);
-      OrderSchema.parse(result._unsafeUnwrap());
-      expect(result.isOk()).toBe(true);
-    });
-
-    it('should raise error when closing with unsupported symbol', async () => {
-      const opts = {
-        symbol: 'NONEXISTENT/USDT:USDT',
-        amount: 100,
-        timeInForce: 30000,
-      };
-      const result = await binance.closeLong(opts);
-      expect(result.isErr()).toBe(true);
-      if (result.isErr()) {
-        expect(result.error).toHaveProperty('reason', 'TRADEKIT_ERROR');
-        if (result.error.reason === 'TRADEKIT_ERROR') {
-          expect(result.error.info).toHaveProperty('code', 'BAD_SYMBOL');
-        }
-      }
-    });
-
-    it('should raise error when attempting to close a position already closed', async () => {
-      const opts = {
-        symbol: 'ETH/USDT:USDT',
-        amount: 0.1,
-        timeInForce: 30000,
-      };
-      // Close the position first
-      await binance.closeLong(opts);
-      // Try closing again
-      const result = await binance.closeLong(opts);
-      expect(result.isErr()).toBe(true);
-      if (result.isErr()) {
-        expect(result.error).toHaveProperty('reason', 'TRADEKIT_ERROR');
-        if (result.error.reason === 'TRADEKIT_ERROR') {
-          expect(result.error.info).toHaveProperty('code', 'INVALID_ORDER');
         }
       }
     });

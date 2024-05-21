@@ -1,4 +1,5 @@
 #!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
 
-CI="true" npm run test;
+CI="true" pnpm test;
+CI="true" pnpm test:e2e;
