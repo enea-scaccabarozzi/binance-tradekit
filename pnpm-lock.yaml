@@ -11,6 +11,9 @@ dependencies:
   binance:
     specifier: ^2.10.4
     version: 2.10.4(esbuild@0.19.12)(typescript@4.9.5)(webpack-cli@4.10.0)
+  bitget-api:
+    specifier: ^2.0.5
+    version: 2.0.5
   bybit-api:
     specifier: ^3.10.3
     version: 3.10.3(esbuild@0.19.12)(typescript@4.9.5)
@@ -2525,6 +2528,18 @@ packages:
     engines: {node: '>=8'}
     dev: true
 
+  /bitget-api@2.0.5:
+    resolution: {integrity: sha512-v8WZNTWfWZJy6WNuN6i9v7wD1pi9DGZhewiXRzxOSlraBDrKR3Cymel6AG4EtLXlx9AXbRc2opeI2N0KwEnVQQ==}
+    dependencies:
+      axios: 1.7.1
+      isomorphic-ws: 5.0.0(ws@8.17.0)
+      ws: 8.17.0
+    transitivePeerDependencies:
+      - bufferutil
+      - debug
+      - utf-8-validate
+    dev: false
+
   /bl@4.1.0:
     resolution: {integrity: sha512-1W07cM9gS6DcLperZfFSj+bWLtaPGSOHWhPiGzXmvVJbRLdG82sH/Kn8EtW1VqWVA54AKf2h5k5BbnIbwF3h6w==}
     dependencies:
@@ -4857,6 +4872,14 @@ packages:
       ws: '*'
     dependencies:
       ws: 7.5.9
+    dev: false
+
+  /isomorphic-ws@5.0.0(ws@8.17.0):
+    resolution: {integrity: sha512-muId7Zzn9ywDsyXgTIafTry2sV3nySZeUDe6YedVd1Hvuuep5AsIlqK+XefWpYTyJG5e503F2xIuT2lcU6rCSw==}
+    peerDependencies:
+      ws: '*'
+    dependencies:
+      ws: 8.17.0
     dev: false
 
   /issue-parser@6.0.0:

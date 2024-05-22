@@ -127,6 +127,7 @@
   "dependencies": {
     "axios": "^1.6.8",
     "binance": "^2.10.4",
+    "bitget-api": "^2.0.5",
     "bybit-api": "^3.10.3",
     "ccxt": "^4.3.24",
     "dotenv": "^16.4.5",

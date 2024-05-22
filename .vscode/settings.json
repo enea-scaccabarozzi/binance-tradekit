@@ -3,5 +3,5 @@
   "[typescript]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
-  "conventionalCommits.scopes": ["shared", "okx", "bybit", "binance"]
+  "conventionalCommits.scopes": ["shared", "okx", "bybit", "binance", "bitget"]
 }

@@ -55,6 +55,8 @@ export class BybitStreamClient implements StreamClient {
               ...data.data,
             },
           };
+        }
+        if (this.currentSnapshot) {
           const ticker = this.tickerAdapter(this.currentSnapshot);
           opts.onUpdate(ticker);
         }
