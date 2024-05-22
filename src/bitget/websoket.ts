@@ -13,6 +13,7 @@ import { normalizeSymbol } from './utils';
 export class BitgetStreamClient implements StreamClient {
   private ws: WebsocketClientV2;
   private currentSnapshots: Map<string, BitgetWssTiker> = new Map();
+  private symbolsMap: Map<string, string> = new Map();
 
   constructor(
     opts: BaseSubscriptionOptions<Ticker> & {
@@ -69,7 +70,8 @@ export class BitgetStreamClient implements StreamClient {
 
     opts.symbols
       .map(symbol => normalizeSymbol(symbol, false))
-      .forEach(symbol => {
+      .forEach((symbol, i) => {
+        this.symbolsMap.set(symbol, opts.symbols[i]);
         this.ws.subscribeTopic('USDT-FUTURES', 'ticker', symbol);
       });
   }
@@ -126,7 +128,7 @@ export class BitgetStreamClient implements StreamClient {
     const percChange = (absChange / open) * 100;
 
     return {
-      symbol: instId,
+      symbol: this.symbolsMap.get(instId) || instId,
       timestamp,
       datetime,
       last,

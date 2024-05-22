@@ -11,6 +11,7 @@ import { BinanceWssUpdate } from '../types/binance';
 
 export class BinanceStreamClient implements StreamClient {
   private ws: WebsocketClient;
+  private sybolsMap: Map<string, string> = new Map();
 
   constructor(
     opts: BaseSubscriptionOptions<Ticker> & {
@@ -47,7 +48,8 @@ export class BinanceStreamClient implements StreamClient {
     opts.symbols
       .map(symbol => symbol.replace('/', ''))
       .map(symbol => symbol.split(':')[0])
-      .forEach(symbol => {
+      .forEach((symbol, i) => {
+        this.sybolsMap.set(symbol, opts.symbols[i]);
         this.ws.subscribeSymbol24hrTicker(symbol, 'usdm');
       });
   }
@@ -86,7 +88,7 @@ export class BinanceStreamClient implements StreamClient {
 
   private tickerAdapter = (data: BinanceWssUpdate): Ticker => {
     return {
-      symbol: data.symbol,
+      symbol: this.sybolsMap.get(data.symbol) || data.symbol,
       timestamp: data.eventTime,
       datetime: new Date(data.eventTime),
       last: data.currentClose,

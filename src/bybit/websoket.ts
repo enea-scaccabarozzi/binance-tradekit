@@ -8,6 +8,7 @@ import { BybitWssUpdate, BybitWssUpdateSnapshot } from '../types/bybit';
 export class BybitStreamClient implements StreamClient {
   private ws: WebsocketClient;
   private currentSnapshot: BybitWssUpdateSnapshot | null = null;
+  private symbolsMap: Map<string, string> = new Map();
 
   constructor(
     opts: BaseSubscriptionOptions<Ticker> & {
@@ -72,6 +73,12 @@ export class BybitStreamClient implements StreamClient {
 
   private async subscribeToTicker(symbols: string[]): Promise<void> {
     try {
+      symbols
+        .map(s => s.replace('/', ''))
+        .map(s => s.split(':')[0])
+        .forEach((symbol, i) => {
+          this.symbolsMap.set(symbol, symbols[i]);
+        });
       await this.ws.subscribeV5(
         symbols
           .map(s => s.replace('/', '').split(':')[0])
@@ -122,7 +129,7 @@ export class BybitStreamClient implements StreamClient {
     } = snapshot.data;
 
     return {
-      symbol,
+      symbol: this.symbolsMap.get(symbol) || symbol,
       timestamp: snapshot.ts,
       datetime: new Date(snapshot.ts),
       last: parseFloat(lastPrice),
