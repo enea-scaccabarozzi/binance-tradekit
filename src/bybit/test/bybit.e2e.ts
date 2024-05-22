@@ -81,6 +81,9 @@ const bybit = new Bybit({
   proxies: [parseProxyUrl(process.env.PROXY_URL_1 as string)],
 });
 
+const describeIf = (condition: boolean) =>
+  condition ? describe : describe.skip;
+
 describe('Bybit Class Integration Tests', () => {
   beforeAll(() => {
     // Any setup can be done here
@@ -135,7 +138,7 @@ describe('Bybit Class Integration Tests', () => {
     });
   });
 
-  describe('subscribeToTicker', () => {
+  describeIf(process.env.CI !== 'true')('subscribeToTicker', () => {
     it('should retrive ticker events successfully', async () => {
       const symbol = 'BTC/USDT:USDT';
       const onUpdate = vi.fn();
@@ -188,7 +191,7 @@ describe('Bybit Class Integration Tests', () => {
     });
   });
 
-  describe('subscribeToTickers', () => {
+  describeIf(process.env.CI !== 'true')('subscribeToTickers', () => {
     it('should retrive tickers events successfully', async () => {
       const symbols = ['BTC/USDT:USDT', 'ETH/USDT:USDT'];
       const onUpdate = vi.fn();
