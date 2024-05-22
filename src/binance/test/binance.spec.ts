@@ -303,6 +303,20 @@ describe('Binance', () => {
       expect(rotateProxySpy).toHaveBeenCalled();
       expect(syncProxySpy).toHaveBeenCalled();
     });
+
+    it('should return err if symbol is unset', async () => {
+      const rotateProxySpy = vi.spyOn(binance, 'rotateProxy');
+      const syncProxySpy = vi.spyOn(binance, 'syncProxy' as keyof Binance);
+
+      const result = await binance.setLeverage({
+        leverage: 10,
+        symbol: undefined,
+      });
+
+      expect(result.isErr()).toBe(true);
+      expect(rotateProxySpy).toHaveBeenCalled();
+      expect(syncProxySpy).toHaveBeenCalled();
+    });
   });
 
   describe('openLong', () => {
