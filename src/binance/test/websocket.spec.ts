@@ -108,7 +108,7 @@ describe('BinanceStreamClient', () => {
     const mockData: BinanceWssUpdate = {
       eventType: '24hrTicker',
       eventTime: 1716278225268,
-      symbol: 'BTCUSDT',
+      symbol: 'BTC/USDT:USDT',
       priceChange: 4126,
       priceChangePercent: 6.172,
       weightedAveragePrice: 69367.39,

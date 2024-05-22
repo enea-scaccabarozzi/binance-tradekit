@@ -142,7 +142,7 @@ describe('BitgetStreamClient', () => {
     };
 
     const expectedTicker: Ticker = {
-      symbol: 'BTCUSDT',
+      symbol: 'BTC/USDT:USDT',
       timestamp: 1716406573063,
       datetime: new Date(1716406573063),
       last: 69764.7,
@@ -224,7 +224,7 @@ describe('BitgetStreamClient', () => {
     };
 
     const expectedTicker: Ticker = {
-      symbol: 'BTCUSDT',
+      symbol: 'BTC/USDT:USDT',
       timestamp: 1716406573063,
       datetime: new Date(1716406573063),
       last: 79764.7,

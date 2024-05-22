@@ -113,7 +113,7 @@ describe('BybitStreamClient', () => {
     const snapshotData: BybitWssUpdate = {
       type: 'snapshot',
       data: {
-        symbol: 'BTCUSDT',
+        symbol: 'BTC/USDT:USDT',
         highPrice24h: '60000',
         lowPrice24h: '50000',
         bid1Price: '59000',
@@ -193,7 +193,7 @@ describe('BybitStreamClient', () => {
 
     expect(opts.onUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
-        symbol: 'BTCUSDT',
+        symbol: 'BTC/USDT:USDT',
         last: 59600,
       })
     );
