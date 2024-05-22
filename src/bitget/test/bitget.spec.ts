@@ -1,29 +1,29 @@
 import { describe, it, expect, vi, beforeEach, Mocked } from 'vitest';
-import { binance, Ticker, Tickers, Balances, ExchangeError, Order } from 'ccxt';
+import { bitget, Ticker, Balances, ExchangeError, Order } from 'ccxt';
 import { ok } from 'neverthrow';
 
-import { Binance } from '../index';
+import { Bitget } from '../index';
 import { TradekitOptions } from '../../types/shared';
 import {
   SubscribeToTikerOptions,
   SubscribeToTikersOptions,
 } from '../../types/shared/tickers';
 import { ccxtBalanceAdapter } from '../../shared/adapters/balance';
+import { BitgetOrderResponse } from '../../types/bitget';
 
-// Mock the binance class
+// Mock the bitget class
 vi.mock('ccxt', async () => {
   const originalModule = await vi.importActual('ccxt');
   return {
     ...originalModule,
     default: {
       ...(originalModule.default as any),
-      binance: vi.fn().mockImplementation(() => ({
+      bitget: vi.fn().mockImplementation(() => ({
         fetchTicker: vi.fn(),
-        fetchTickers: vi.fn(),
         fetchBalance: vi.fn(),
-        setLeverage: vi.fn(),
-        createMarketOrder: vi.fn(),
-        fetchOpenOrders: vi.fn(),
+        privateMixPostV2MixAccountSetLeverage: vi.fn(),
+        privateMixPostV2MixOrderPlaceOrder: vi.fn(),
+        fetchOrder: vi.fn(),
         cancelOrder: vi.fn(),
         setSandboxMode: vi.fn(),
         options: {},
@@ -54,17 +54,21 @@ vi.mock('../errors.ts', () => ({
   })),
 }));
 
-describe('Binance', () => {
-  let binance: Binance;
-  let exchangeMock: Mocked<binance>;
+vi.mock('../utils.ts', () => ({
+  normalizeSymbol: vi.fn().mockImplementation((symbol: string) => symbol),
+}));
+
+describe('Bitget', () => {
+  let bitget: Bitget;
+  let exchangeMock: Mocked<bitget>;
 
   beforeEach(() => {
     const opts: TradekitOptions = {
       auth: { key: 'test', secret: 'test' },
       sandbox: true,
     };
-    binance = new Binance(opts);
-    exchangeMock = binance['exchange'] as Mocked<binance>;
+    bitget = new Bitget(opts);
+    exchangeMock = bitget['exchange'] as Mocked<bitget>;
   });
 
   describe('getTicker', () => {
@@ -72,10 +76,10 @@ describe('Binance', () => {
       exchangeMock.fetchTicker.mockResolvedValue({
         symbol: 'BTC/USDT',
       } as Ticker);
-      const rotateProxySpy = vi.spyOn(binance, 'rotateProxy');
-      const syncProxySpy = vi.spyOn(binance, 'syncProxy' as keyof Binance);
+      const rotateProxySpy = vi.spyOn(bitget, 'rotateProxy');
+      const syncProxySpy = vi.spyOn(bitget, 'syncProxy' as keyof Bitget);
 
-      const result = await binance.getTicker({ symbol: 'BTC/USDT' });
+      const result = await bitget.getTicker({ symbol: 'BTC/USDT' });
 
       expect(result.isOk()).toBe(true);
       expect(result._unsafeUnwrap()).toEqual({ symbol: 'BTC/USDT' });
@@ -86,10 +90,10 @@ describe('Binance', () => {
     it('should handle error and rotate proxy', async () => {
       const error = new Error('Test error');
       exchangeMock.fetchTicker.mockRejectedValue(error);
-      const rotateProxySpy = vi.spyOn(binance, 'rotateProxy');
-      const syncProxySpy = vi.spyOn(binance, 'syncProxy' as keyof Binance);
+      const rotateProxySpy = vi.spyOn(bitget, 'rotateProxy');
+      const syncProxySpy = vi.spyOn(bitget, 'syncProxy' as keyof Bitget);
 
-      const result = await binance.getTicker({ symbol: 'BTC/USDT' });
+      const result = await bitget.getTicker({ symbol: 'BTC/USDT' });
 
       expect(result.isErr()).toBe(true);
       expect(result._unsafeUnwrapErr()).toEqual({
@@ -103,14 +107,16 @@ describe('Binance', () => {
 
   describe('getTickers', () => {
     it('should fetch tickers and rotate proxy', async () => {
-      exchangeMock.fetchTickers.mockResolvedValue({
-        'BTC/USDT': { symbol: 'BTC/USDT' } as Ticker,
-        'ETH/USDT': { symbol: 'ETH/USDT' } as Ticker,
-      } as Tickers);
-      const rotateProxySpy = vi.spyOn(binance, 'rotateProxy');
-      const syncProxySpy = vi.spyOn(binance, 'syncProxy' as keyof Binance);
+      exchangeMock.fetchTicker.mockResolvedValueOnce({
+        symbol: 'BTC/USDT',
+      } as Ticker);
+      exchangeMock.fetchTicker.mockResolvedValueOnce({
+        symbol: 'ETH/USDT',
+      } as Ticker);
+      const rotateProxySpy = vi.spyOn(bitget, 'rotateProxy');
+      const syncProxySpy = vi.spyOn(bitget, 'syncProxy' as keyof Bitget);
 
-      const result = await binance.getTickers({
+      const result = await bitget.getTickers({
         symbols: ['BTC/USDT', 'ETH/USDT'],
       });
 
@@ -125,11 +131,11 @@ describe('Binance', () => {
 
     it('should handle error and rotate proxy', async () => {
       const error = new Error('Test error');
-      exchangeMock.fetchTickers.mockRejectedValue(error);
-      const rotateProxySpy = vi.spyOn(binance, 'rotateProxy');
-      const syncProxySpy = vi.spyOn(binance, 'syncProxy' as keyof Binance);
+      exchangeMock.fetchTicker.mockRejectedValue(error);
+      const rotateProxySpy = vi.spyOn(bitget, 'rotateProxy');
+      const syncProxySpy = vi.spyOn(bitget, 'syncProxy' as keyof Bitget);
 
-      const result = await binance.getTickers({
+      const result = await bitget.getTickers({
         symbols: ['BTC/USDT', 'ETH/USDT'],
       });
 
@@ -144,26 +150,26 @@ describe('Binance', () => {
   });
 
   describe('subscribeToTicker', () => {
-    it('should not be implemented', () => {
+    it('should return a StreamClient object', () => {
       const options: SubscribeToTikerOptions = {
         symbol: 'BTC/USDT:USDT',
         onUpdate: vi.fn(),
       };
 
-      const result = binance.subscribeToTicker(options);
+      const result = bitget.subscribeToTicker(options);
 
       expect(result).toBeDefined();
     });
   });
 
   describe('subscribeToTickers', () => {
-    it('should not be implemented', () => {
+    it('should return a StreamClient object', () => {
       const options: SubscribeToTikersOptions = {
         symbols: ['BTC/USDT:USDT'],
         onUpdate: vi.fn(),
       };
 
-      const result = binance.subscribeToTickers(options);
+      const result = bitget.subscribeToTickers(options);
 
       expect(result).toBeDefined();
     });
@@ -180,10 +186,10 @@ describe('Binance', () => {
         datetime: '',
       } as unknown as Balances;
       exchangeMock.fetchBalance.mockResolvedValue(balance);
-      const rotateProxySpy = vi.spyOn(binance, 'rotateProxy');
-      const syncProxySpy = vi.spyOn(binance, 'syncProxy' as keyof Binance);
+      const rotateProxySpy = vi.spyOn(bitget, 'rotateProxy');
+      const syncProxySpy = vi.spyOn(bitget, 'syncProxy' as keyof Bitget);
 
-      const result = await binance.getBalance();
+      const result = await bitget.getBalance();
 
       expect(result.isOk()).toBe(true);
       expect(result._unsafeUnwrap()).toEqual(balance);
@@ -194,10 +200,10 @@ describe('Binance', () => {
     it('should handle error and rotate proxy', async () => {
       const error = new Error('Test error');
       exchangeMock.fetchBalance.mockRejectedValue(error);
-      const rotateProxySpy = vi.spyOn(binance, 'rotateProxy');
-      const syncProxySpy = vi.spyOn(binance, 'syncProxy' as keyof Binance);
+      const rotateProxySpy = vi.spyOn(bitget, 'rotateProxy');
+      const syncProxySpy = vi.spyOn(bitget, 'syncProxy' as keyof Bitget);
 
-      const result = await binance.getBalance();
+      const result = await bitget.getBalance();
 
       expect(result.isErr()).toBe(true);
       expect(result._unsafeUnwrapErr()).toEqual({
@@ -217,8 +223,8 @@ describe('Binance', () => {
         datetime: '',
       } as unknown as Balances;
       exchangeMock.fetchBalance.mockResolvedValue(balance);
-      const rotateProxySpy = vi.spyOn(binance, 'rotateProxy');
-      const syncProxySpy = vi.spyOn(binance, 'syncProxy' as keyof Binance);
+      const rotateProxySpy = vi.spyOn(bitget, 'rotateProxy');
+      const syncProxySpy = vi.spyOn(bitget, 'syncProxy' as keyof Bitget);
       vi.mocked(ccxtBalanceAdapter).mockReturnValue({
         currencies: {
           BTC: { free: 1, used: 0.5, total: 1.5 },
@@ -228,7 +234,7 @@ describe('Binance', () => {
         datetime: new Date(),
       });
 
-      const result = await binance.getBalance({ currencies: ['BTC'] });
+      const result = await bitget.getBalance({ currencies: ['BTC'] });
 
       expect(result.isOk()).toBe(true);
       expect(Object.keys(result._unsafeUnwrap().currencies)).toEqual(['BTC']);
@@ -239,11 +245,13 @@ describe('Binance', () => {
 
   describe('setLeverage', () => {
     it('should set leverage and rotate proxy', async () => {
-      exchangeMock.setLeverage.mockResolvedValue(undefined);
-      const rotateProxySpy = vi.spyOn(binance, 'rotateProxy');
-      const syncProxySpy = vi.spyOn(binance, 'syncProxy' as keyof Binance);
+      exchangeMock.privateMixPostV2MixAccountSetLeverage.mockResolvedValue(
+        undefined
+      );
+      const rotateProxySpy = vi.spyOn(bitget, 'rotateProxy');
+      const syncProxySpy = vi.spyOn(bitget, 'syncProxy' as keyof Bitget);
 
-      const result = await binance.setLeverage({
+      const result = await bitget.setLeverage({
         leverage: 10,
         symbol: 'BTC/USDT',
       });
@@ -256,11 +264,13 @@ describe('Binance', () => {
 
     it('should handle error and rotate proxy', async () => {
       const error = new Error('Test error');
-      exchangeMock.setLeverage.mockRejectedValue(error);
-      const rotateProxySpy = vi.spyOn(binance, 'rotateProxy');
-      const syncProxySpy = vi.spyOn(binance, 'syncProxy' as keyof Binance);
+      exchangeMock.privateMixPostV2MixAccountSetLeverage.mockRejectedValue(
+        error
+      );
+      const rotateProxySpy = vi.spyOn(bitget, 'rotateProxy');
+      const syncProxySpy = vi.spyOn(bitget, 'syncProxy' as keyof Bitget);
 
-      const result = await binance.setLeverage({
+      const result = await bitget.setLeverage({
         leverage: 10,
         symbol: 'BTC/USDT',
       });
@@ -275,12 +285,14 @@ describe('Binance', () => {
     });
 
     it('should return err if exchange return other error', async () => {
-      const error = new ExchangeError('binance {"retCode":42}');
-      exchangeMock.setLeverage.mockRejectedValue(error);
-      const rotateProxySpy = vi.spyOn(binance, 'rotateProxy');
-      const syncProxySpy = vi.spyOn(binance, 'syncProxy' as keyof Binance);
+      const error = new ExchangeError('bitget {"retCode":42}');
+      exchangeMock.privateMixPostV2MixAccountSetLeverage.mockRejectedValue(
+        error
+      );
+      const rotateProxySpy = vi.spyOn(bitget, 'rotateProxy');
+      const syncProxySpy = vi.spyOn(bitget, 'syncProxy' as keyof Bitget);
 
-      const result = await binance.setLeverage({
+      const result = await bitget.setLeverage({
         leverage: 10,
         symbol: 'BTC/USDT',
       });
@@ -291,10 +303,10 @@ describe('Binance', () => {
     });
 
     it('should return err if symbol is unset', async () => {
-      const rotateProxySpy = vi.spyOn(binance, 'rotateProxy');
-      const syncProxySpy = vi.spyOn(binance, 'syncProxy' as keyof Binance);
+      const rotateProxySpy = vi.spyOn(bitget, 'rotateProxy');
+      const syncProxySpy = vi.spyOn(bitget, 'syncProxy' as keyof Bitget);
 
-      const result = await binance.setLeverage({
+      const result = await bitget.setLeverage({
         leverage: 10,
         symbol: undefined,
       });
@@ -307,13 +319,16 @@ describe('Binance', () => {
 
   describe('openLong', () => {
     it('should open long position and rotate proxy', async () => {
-      const order = { id: '1' } as Order;
-      exchangeMock.createMarketOrder.mockResolvedValue(order);
-      exchangeMock.fetchOpenOrders.mockResolvedValue([]);
-      const rotateProxySpy = vi.spyOn(binance, 'rotateProxy');
-      const syncProxySpy = vi.spyOn(binance, 'syncProxy' as keyof Binance);
+      const orderResponse = { data: { orderId: '1' } } as BitgetOrderResponse;
+      const order = { remaining: 0, id: '1' } as Order;
+      exchangeMock.privateMixPostV2MixOrderPlaceOrder.mockResolvedValue(
+        orderResponse
+      );
+      exchangeMock.fetchOrder.mockResolvedValue(order);
+      const rotateProxySpy = vi.spyOn(bitget, 'rotateProxy');
+      const syncProxySpy = vi.spyOn(bitget, 'syncProxy' as keyof Bitget);
 
-      const result = await binance.openLong({ symbol: 'BTC/USDT', amount: 1 });
+      const result = await bitget.openLong({ symbol: 'BTC/USDT', amount: 1 });
 
       expect(result.isOk()).toBe(true);
       expect(result._unsafeUnwrap()).toEqual(order);
@@ -323,11 +338,11 @@ describe('Binance', () => {
 
     it('should handle error and rotate proxy', async () => {
       const error = new Error('Test error');
-      exchangeMock.createMarketOrder.mockRejectedValue(error);
-      const rotateProxySpy = vi.spyOn(binance, 'rotateProxy');
-      const syncProxySpy = vi.spyOn(binance, 'syncProxy' as keyof Binance);
+      exchangeMock.privateMixPostV2MixOrderPlaceOrder.mockRejectedValue(error);
+      const rotateProxySpy = vi.spyOn(bitget, 'rotateProxy');
+      const syncProxySpy = vi.spyOn(bitget, 'syncProxy' as keyof Bitget);
 
-      const result = await binance.openLong({ symbol: 'BTC/USDT', amount: 1 });
+      const result = await bitget.openLong({ symbol: 'BTC/USDT', amount: 1 });
 
       expect(result.isErr()).toBe(true);
       expect(result._unsafeUnwrapErr()).toEqual({
@@ -339,16 +354,19 @@ describe('Binance', () => {
     });
 
     it('should return error if order is not filled and timeout', async () => {
-      const order = { id: '1' } as Order;
-      exchangeMock.createMarketOrder.mockResolvedValue(order);
-      exchangeMock.fetchOpenOrders.mockImplementation(() => {
-        return new Promise(resolve => setTimeout(() => resolve([order]), 100));
+      const orderResponse = { data: { orderId: '1' } } as BitgetOrderResponse;
+      const order = { remaining: 0.5, id: '1' } as Order;
+      exchangeMock.privateMixPostV2MixOrderPlaceOrder.mockResolvedValue(
+        orderResponse
+      );
+      exchangeMock.fetchOrder.mockImplementation(() => {
+        return new Promise(resolve => setTimeout(() => resolve(order), 100));
       });
       const cancelOrderSpy = vi.spyOn(exchangeMock, 'cancelOrder');
-      const rotateProxySpy = vi.spyOn(binance, 'rotateProxy');
-      const syncProxySpy = vi.spyOn(binance, 'syncProxy' as keyof Binance);
+      const rotateProxySpy = vi.spyOn(bitget, 'rotateProxy');
+      const syncProxySpy = vi.spyOn(bitget, 'syncProxy' as keyof Bitget);
 
-      const result = await binance.openLong({
+      const result = await bitget.openLong({
         symbol: 'BTC/USDT',
         amount: 1,
         timeInForce: 500,
@@ -359,7 +377,7 @@ describe('Binance', () => {
         reason: 'TRADEKIT_ERROR',
         info: { code: 'TIME_OUT', msg: 'The order was not filled in time.' },
       });
-      expect(cancelOrderSpy).toHaveBeenCalledWith(order.id);
+      expect(cancelOrderSpy).toHaveBeenCalledWith(order.id, 'BTC/USDT');
       expect(rotateProxySpy).toHaveBeenCalled();
       expect(syncProxySpy).toHaveBeenCalled();
     });
@@ -367,13 +385,16 @@ describe('Binance', () => {
 
   describe('openShort', () => {
     it('should open short position and rotate proxy', async () => {
-      const order = { id: '1' } as Order;
-      exchangeMock.createMarketOrder.mockResolvedValue(order);
-      exchangeMock.fetchOpenOrders.mockResolvedValue([]);
-      const rotateProxySpy = vi.spyOn(binance, 'rotateProxy');
-      const syncProxySpy = vi.spyOn(binance, 'syncProxy' as keyof Binance);
+      const orderResponse = { data: { orderId: '1' } } as BitgetOrderResponse;
+      const order = { remaining: 0, id: '1' } as Order;
+      exchangeMock.privateMixPostV2MixOrderPlaceOrder.mockResolvedValue(
+        orderResponse
+      );
+      exchangeMock.fetchOrder.mockResolvedValue(order);
+      const rotateProxySpy = vi.spyOn(bitget, 'rotateProxy');
+      const syncProxySpy = vi.spyOn(bitget, 'syncProxy' as keyof Bitget);
 
-      const result = await binance.openShort({ symbol: 'BTC/USDT', amount: 1 });
+      const result = await bitget.openShort({ symbol: 'BTC/USDT', amount: 1 });
 
       expect(result.isOk()).toBe(true);
       expect(result._unsafeUnwrap()).toEqual(order);
@@ -383,11 +404,11 @@ describe('Binance', () => {
 
     it('should handle error and rotate proxy', async () => {
       const error = new Error('Test error');
-      exchangeMock.createMarketOrder.mockRejectedValue(error);
-      const rotateProxySpy = vi.spyOn(binance, 'rotateProxy');
-      const syncProxySpy = vi.spyOn(binance, 'syncProxy' as keyof Binance);
+      exchangeMock.privateMixPostV2MixOrderPlaceOrder.mockRejectedValue(error);
+      const rotateProxySpy = vi.spyOn(bitget, 'rotateProxy');
+      const syncProxySpy = vi.spyOn(bitget, 'syncProxy' as keyof Bitget);
 
-      const result = await binance.openShort({ symbol: 'BTC/USDT', amount: 1 });
+      const result = await bitget.openShort({ symbol: 'BTC/USDT', amount: 1 });
 
       expect(result.isErr()).toBe(true);
       expect(result._unsafeUnwrapErr()).toEqual({
@@ -399,16 +420,19 @@ describe('Binance', () => {
     });
 
     it('should return error if order is not filled and timeout', async () => {
-      const order = { id: '1' } as Order;
-      exchangeMock.createMarketOrder.mockResolvedValue(order);
-      exchangeMock.fetchOpenOrders.mockImplementation(() => {
-        return new Promise(resolve => setTimeout(() => resolve([order]), 100));
+      const orderResponse = { data: { orderId: '1' } } as BitgetOrderResponse;
+      const order = { remaining: 0.5, id: '1' } as Order;
+      exchangeMock.privateMixPostV2MixOrderPlaceOrder.mockResolvedValue(
+        orderResponse
+      );
+      exchangeMock.fetchOrder.mockImplementation(() => {
+        return new Promise(resolve => setTimeout(() => resolve(order), 100));
       });
       const cancelOrderSpy = vi.spyOn(exchangeMock, 'cancelOrder');
-      const rotateProxySpy = vi.spyOn(binance, 'rotateProxy');
-      const syncProxySpy = vi.spyOn(binance, 'syncProxy' as keyof Binance);
+      const rotateProxySpy = vi.spyOn(bitget, 'rotateProxy');
+      const syncProxySpy = vi.spyOn(bitget, 'syncProxy' as keyof Bitget);
 
-      const result = await binance.openShort({
+      const result = await bitget.openShort({
         symbol: 'BTC/USDT',
         amount: 1,
         timeInForce: 500,
@@ -419,7 +443,7 @@ describe('Binance', () => {
         reason: 'TRADEKIT_ERROR',
         info: { code: 'TIME_OUT', msg: 'The order was not filled in time.' },
       });
-      expect(cancelOrderSpy).toHaveBeenCalledWith(order.id);
+      expect(cancelOrderSpy).toHaveBeenCalledWith(order.id, 'BTC/USDT');
       expect(rotateProxySpy).toHaveBeenCalled();
       expect(syncProxySpy).toHaveBeenCalled();
     });
@@ -427,13 +451,16 @@ describe('Binance', () => {
 
   describe('closeLong', () => {
     it('should close long position and rotate proxy', async () => {
-      const order = { id: '1' } as Order;
-      exchangeMock.createMarketOrder.mockResolvedValue(order);
-      exchangeMock.fetchOpenOrders.mockResolvedValue([]);
-      const rotateProxySpy = vi.spyOn(binance, 'rotateProxy');
-      const syncProxySpy = vi.spyOn(binance, 'syncProxy' as keyof Binance);
+      const orderResponse = { data: { orderId: '1' } } as BitgetOrderResponse;
+      const order = { remaining: 0, id: '1' } as Order;
+      exchangeMock.privateMixPostV2MixOrderPlaceOrder.mockResolvedValue(
+        orderResponse
+      );
+      exchangeMock.fetchOrder.mockResolvedValue(order);
+      const rotateProxySpy = vi.spyOn(bitget, 'rotateProxy');
+      const syncProxySpy = vi.spyOn(bitget, 'syncProxy' as keyof Bitget);
 
-      const result = await binance.closeLong({ symbol: 'BTC/USDT', amount: 1 });
+      const result = await bitget.closeLong({ symbol: 'BTC/USDT', amount: 1 });
 
       expect(result.isOk()).toBe(true);
       expect(result._unsafeUnwrap()).toEqual(order);
@@ -443,11 +470,11 @@ describe('Binance', () => {
 
     it('should handle error and rotate proxy', async () => {
       const error = new Error('Test error');
-      exchangeMock.createMarketOrder.mockRejectedValue(error);
-      const rotateProxySpy = vi.spyOn(binance, 'rotateProxy');
-      const syncProxySpy = vi.spyOn(binance, 'syncProxy' as keyof Binance);
+      exchangeMock.privateMixPostV2MixOrderPlaceOrder.mockRejectedValue(error);
+      const rotateProxySpy = vi.spyOn(bitget, 'rotateProxy');
+      const syncProxySpy = vi.spyOn(bitget, 'syncProxy' as keyof Bitget);
 
-      const result = await binance.closeLong({ symbol: 'BTC/USDT', amount: 1 });
+      const result = await bitget.closeLong({ symbol: 'BTC/USDT', amount: 1 });
 
       expect(result.isErr()).toBe(true);
       expect(result._unsafeUnwrapErr()).toEqual({
@@ -459,16 +486,19 @@ describe('Binance', () => {
     });
 
     it('should return error if order is not filled and timeout', async () => {
-      const order = { id: '1' } as Order;
-      exchangeMock.createMarketOrder.mockResolvedValue(order);
-      exchangeMock.fetchOpenOrders.mockImplementation(() => {
-        return new Promise(resolve => setTimeout(() => resolve([order]), 100));
+      const orderResponse = { data: { orderId: '1' } } as BitgetOrderResponse;
+      const order = { remaining: 0.5, id: '1' } as Order;
+      exchangeMock.privateMixPostV2MixOrderPlaceOrder.mockResolvedValue(
+        orderResponse
+      );
+      exchangeMock.fetchOrder.mockImplementation(() => {
+        return new Promise(resolve => setTimeout(() => resolve(order), 100));
       });
       const cancelOrderSpy = vi.spyOn(exchangeMock, 'cancelOrder');
-      const rotateProxySpy = vi.spyOn(binance, 'rotateProxy');
-      const syncProxySpy = vi.spyOn(binance, 'syncProxy' as keyof Binance);
+      const rotateProxySpy = vi.spyOn(bitget, 'rotateProxy');
+      const syncProxySpy = vi.spyOn(bitget, 'syncProxy' as keyof Bitget);
 
-      const result = await binance.closeLong({
+      const result = await bitget.closeLong({
         symbol: 'BTC/USDT',
         amount: 1,
         timeInForce: 500,
@@ -479,7 +509,7 @@ describe('Binance', () => {
         reason: 'TRADEKIT_ERROR',
         info: { code: 'TIME_OUT', msg: 'The order was not filled in time.' },
       });
-      expect(cancelOrderSpy).toHaveBeenCalledWith(order.id);
+      expect(cancelOrderSpy).toHaveBeenCalledWith(order.id, 'BTC/USDT');
       expect(rotateProxySpy).toHaveBeenCalled();
       expect(syncProxySpy).toHaveBeenCalled();
     });
@@ -487,13 +517,16 @@ describe('Binance', () => {
 
   describe('closeShort', () => {
     it('should close short position and rotate proxy', async () => {
-      const order = { id: '1' } as Order;
-      exchangeMock.createMarketOrder.mockResolvedValue(order);
-      exchangeMock.fetchOpenOrders.mockResolvedValue([]);
-      const rotateProxySpy = vi.spyOn(binance, 'rotateProxy');
-      const syncProxySpy = vi.spyOn(binance, 'syncProxy' as keyof Binance);
+      const orderResponse = { data: { orderId: '1' } } as BitgetOrderResponse;
+      const order = { remaining: 0, id: '1' } as Order;
+      exchangeMock.privateMixPostV2MixOrderPlaceOrder.mockResolvedValue(
+        orderResponse
+      );
+      exchangeMock.fetchOrder.mockResolvedValue(order);
+      const rotateProxySpy = vi.spyOn(bitget, 'rotateProxy');
+      const syncProxySpy = vi.spyOn(bitget, 'syncProxy' as keyof Bitget);
 
-      const result = await binance.closeShort({
+      const result = await bitget.closeShort({
         symbol: 'BTC/USDT',
         amount: 1,
       });
@@ -506,11 +539,11 @@ describe('Binance', () => {
 
     it('should handle error and rotate proxy', async () => {
       const error = new Error('Test error');
-      exchangeMock.createMarketOrder.mockRejectedValue(error);
-      const rotateProxySpy = vi.spyOn(binance, 'rotateProxy');
-      const syncProxySpy = vi.spyOn(binance, 'syncProxy' as keyof Binance);
+      exchangeMock.privateMixPostV2MixOrderPlaceOrder.mockRejectedValue(error);
+      const rotateProxySpy = vi.spyOn(bitget, 'rotateProxy');
+      const syncProxySpy = vi.spyOn(bitget, 'syncProxy' as keyof Bitget);
 
-      const result = await binance.closeShort({
+      const result = await bitget.closeShort({
         symbol: 'BTC/USDT',
         amount: 1,
       });
@@ -525,16 +558,19 @@ describe('Binance', () => {
     });
 
     it('should return error if order is not filled and timeout', async () => {
-      const order = { id: '1' } as Order;
-      exchangeMock.createMarketOrder.mockResolvedValue(order);
-      exchangeMock.fetchOpenOrders.mockImplementation(() => {
-        return new Promise(resolve => setTimeout(() => resolve([order]), 100));
+      const orderResponse = { data: { orderId: '1' } } as BitgetOrderResponse;
+      const order = { remaining: 0.5, id: '1' } as Order;
+      exchangeMock.privateMixPostV2MixOrderPlaceOrder.mockResolvedValue(
+        orderResponse
+      );
+      exchangeMock.fetchOrder.mockImplementation(() => {
+        return new Promise(resolve => setTimeout(() => resolve(order), 100));
       });
       const cancelOrderSpy = vi.spyOn(exchangeMock, 'cancelOrder');
-      const rotateProxySpy = vi.spyOn(binance, 'rotateProxy');
-      const syncProxySpy = vi.spyOn(binance, 'syncProxy' as keyof Binance);
+      const rotateProxySpy = vi.spyOn(bitget, 'rotateProxy');
+      const syncProxySpy = vi.spyOn(bitget, 'syncProxy' as keyof Bitget);
 
-      const result = await binance.closeShort({
+      const result = await bitget.closeShort({
         symbol: 'BTC/USDT',
         amount: 1,
         timeInForce: 500,
@@ -545,7 +581,7 @@ describe('Binance', () => {
         reason: 'TRADEKIT_ERROR',
         info: { code: 'TIME_OUT', msg: 'The order was not filled in time.' },
       });
-      expect(cancelOrderSpy).toHaveBeenCalledWith(order.id);
+      expect(cancelOrderSpy).toHaveBeenCalledWith(order.id, 'BTC/USDT');
       expect(rotateProxySpy).toHaveBeenCalled();
       expect(syncProxySpy).toHaveBeenCalled();
     });
