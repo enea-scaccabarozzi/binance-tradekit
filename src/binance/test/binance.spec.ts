@@ -4,10 +4,6 @@ import { ok } from 'neverthrow';
 
 import { Binance } from '../index';
 import { TradekitOptions } from '../../types/shared';
-import {
-  SubscribeToTikerOptions,
-  SubscribeToTikersOptions,
-} from '../../types/shared/tickers';
 import { ccxtBalanceAdapter } from '../../shared/adapters/balance';
 
 // Mock the binance class
@@ -140,32 +136,6 @@ describe('Binance', () => {
       });
       expect(rotateProxySpy).toHaveBeenCalled();
       expect(syncProxySpy).toHaveBeenCalled();
-    });
-  });
-
-  describe('subscribeToTicker', () => {
-    it('should not be implemented', () => {
-      const options: SubscribeToTikerOptions = {
-        symbol: 'BTC/USDT:USDT',
-        onUpdate: vi.fn(),
-      };
-
-      const result = binance.subscribeToTicker(options);
-
-      expect(result).toBeDefined();
-    });
-  });
-
-  describe('subscribeToTickers', () => {
-    it('should not be implemented', () => {
-      const options: SubscribeToTikersOptions = {
-        symbols: ['BTC/USDT:USDT'],
-        onUpdate: vi.fn(),
-      };
-
-      const result = binance.subscribeToTickers(options);
-
-      expect(result).toBeDefined();
     });
   });
 
