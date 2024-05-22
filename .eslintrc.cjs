@@ -1,7 +1,7 @@
 module.exports = {
   root: true,
   parser: '@typescript-eslint/parser',
-  plugins: ['@typescript-eslint', 'node', 'prettier'],
+  plugins: ['@typescript-eslint', 'node', 'prettier', 'neverthrow'],
   parserOptions: {
     tsconfigRootDir: __dirname,
     project: ['./tsconfig.json'],
@@ -15,6 +15,7 @@ module.exports = {
     'plugin:prettier/recommended',
   ],
   rules: {
+    'neverthrow/must-use-result': 'error',
     'prettier/prettier': 'warn',
     'node/no-missing-import': 'off',
     'node/no-unsupported-features/es-syntax': 'off',
