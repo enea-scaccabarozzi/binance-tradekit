@@ -2,11 +2,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { describe, it, expect, vi, beforeEach, afterEach, Mock } from 'vitest';
 import { WebsocketClient } from 'bybit-api';
-import { Ticker } from 'ccxt';
 
 import { BybitStreamClient } from '../websoket';
 import { BybitWssUpdate } from '../../types/bybit';
-import { BaseSubscriptionOptions } from '../../types/shared/tickers';
+import { BaseSubscriptionOptions, Ticker } from '../../types/shared/tickers';
 
 vi.mock('bybit-api', async () => {
   const originalModule = await vi.importActual('bybit-api');

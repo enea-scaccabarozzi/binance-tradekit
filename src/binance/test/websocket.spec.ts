@@ -2,10 +2,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { describe, it, expect, vi, beforeEach, afterEach, Mock } from 'vitest';
 import { WebsocketClient } from 'binance';
-import { Ticker } from 'ccxt';
 
 import { BinanceStreamClient } from '../websoket';
-import { BaseSubscriptionOptions } from '../../types/shared/tickers';
+import { BaseSubscriptionOptions, Ticker } from '../../types/shared/tickers';
 import { BinanceWssUpdate } from '../../types/binance';
 
 vi.mock('binance', async () => {
@@ -105,7 +104,7 @@ describe('BinanceStreamClient', () => {
   });
 
   it('should handle update event', () => {
-    const client = new BinanceStreamClient(opts);
+    new BinanceStreamClient(opts);
     const mockData: BinanceWssUpdate = {
       eventType: '24hrTicker',
       eventTime: 1716278225268,
@@ -131,25 +130,20 @@ describe('BinanceStreamClient', () => {
 
     const expectedTicker: Ticker = {
       symbol: mockData.symbol,
+      timestamp: mockData.eventTime,
+      datetime: new Date(mockData.eventTime),
+      last: mockData.currentClose,
+      close: mockData.currentClose,
+      absChange: mockData.priceChange,
+      percChange: mockData.priceChangePercent,
+      high: mockData.high,
+      low: mockData.low,
+      volume: mockData.baseAssetVolume,
+      baseVolume: mockData.baseAssetVolume,
+      quoteVolume: mockData.quoteAssetVolume,
+      open: mockData.open,
+      openTime: new Date(mockData.openTime),
       info: mockData,
-      timestamp: Math.floor(mockData.eventTime / 1000),
-      datetime: new Date(mockData.eventTime).toISOString(),
-      high: Math.floor(mockData.high),
-      low: Math.floor(mockData.low),
-      bid: Math.floor(mockData.currentClose),
-      bidVolume: undefined,
-      ask: undefined,
-      askVolume: undefined,
-      vwap: Math.floor(mockData.weightedAveragePrice),
-      open: Math.floor(mockData.open),
-      close: Math.floor(mockData.currentClose),
-      last: Math.floor(mockData.currentClose),
-      previousClose: undefined,
-      change: Math.floor(mockData.priceChange),
-      percentage: Math.floor(mockData.priceChangePercent * 100),
-      average: undefined,
-      quoteVolume: Math.floor(mockData.quoteAssetVolume),
-      baseVolume: Math.floor(mockData.baseAssetVolume),
     };
 
     // Mock the update event with the sample data

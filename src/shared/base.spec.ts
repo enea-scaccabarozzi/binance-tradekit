@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ok, err } from 'neverthrow';
 
 import { BaseClass } from './base'; // update the path accordingly
 import { TradekitAuth } from '../types/shared';
@@ -27,27 +26,27 @@ describe('BaseClass', () => {
       it('should set auth correctly', () => {
         const auth: TradekitAuth = { key: 'new-api-key', secret: 'new-secret' };
         expect(baseClass.setAuth(auth)).toBe(true);
-        expect(baseClass.getAuth()).toEqual(ok(auth));
+        expect(baseClass.getAuth()._unsafeUnwrap()).toEqual(auth);
       });
     });
 
     describe('getAuth', () => {
       it('should return auth when set', () => {
-        expect(baseClass.getAuth()).toEqual(
-          ok({ key: 'test-api-key', secret: 'test-secret' })
-        );
+        expect(baseClass.getAuth()._unsafeUnwrap()).toEqual({
+          key: 'test-api-key',
+          secret: 'test-secret',
+        });
       });
 
       it('should return error if auth is not set', () => {
         const newBaseClass = new BaseClass();
-        expect(newBaseClass.getAuth()).toMatchObject(
-          err({
-            reason: 'TRADEKIT_ERROR',
-            info: {
-              code: 'AUHT_UNSET',
-            },
-          })
-        );
+        // eslint-disable-next-line neverthrow/must-use-result
+        expect(newBaseClass.getAuth()._unsafeUnwrapErr()).toMatchObject({
+          reason: 'TRADEKIT_ERROR',
+          info: {
+            code: 'AUHT_UNSET',
+          },
+        });
       });
     });
   });
@@ -80,66 +79,65 @@ describe('BaseClass', () => {
           { host: 'proxy5.com', port: 8080 },
         ];
         expect(baseClass.setProxies(newProxies)).toBe(newProxies.length);
-        expect(baseClass.getProxies()).toEqual(ok(newProxies));
+        expect(baseClass.getProxies()._unsafeUnwrap()).toEqual(newProxies);
       });
     });
 
     describe('getProxies', () => {
       it('should return proxies when they are set', () => {
-        expect(baseClass.getProxies()).toEqual(ok(proxies));
+        expect(baseClass.getProxies()._unsafeUnwrap()).toEqual(proxies);
       });
 
       it('should return error if no proxies are found', () => {
         const newBaseClass = new BaseClass();
-        expect(newBaseClass.getProxies()).toMatchObject(
-          err({
-            reason: 'TRADEKIT_ERROR',
-            info: { code: 'PROXY_UNSET' },
-          })
-        );
+        // eslint-disable-next-line neverthrow/must-use-result
+        expect(newBaseClass.getProxies()._unsafeUnwrapErr()).toMatchObject({
+          reason: 'TRADEKIT_ERROR',
+          info: { code: 'PROXY_UNSET' },
+        });
       });
     });
 
     describe('getCurrentProxy', () => {
       it('should get the current proxy correctly', () => {
-        expect(baseClass.getCurrentProxy()).toEqual(ok(proxies[0]));
-        baseClass.rotateProxy();
-        expect(baseClass.getCurrentProxy()).toEqual(ok(proxies[1]));
+        expect(baseClass.getCurrentProxy()._unsafeUnwrap()).toEqual(proxies[0]);
+        baseClass.rotateProxy()._unsafeUnwrap();
+        expect(baseClass.getCurrentProxy()._unsafeUnwrap()).toEqual(proxies[1]);
       });
 
       it('should return error if no current proxy is found', () => {
         const newBaseClass = new BaseClass();
-        expect(newBaseClass.getCurrentProxy()).toMatchObject(
-          err({
+        // eslint-disable-next-line neverthrow/must-use-result
+        expect(newBaseClass.getCurrentProxy()._unsafeUnwrapErr()).toMatchObject(
+          {
             reason: 'TRADEKIT_ERROR',
             info: { code: 'PROXY_UNSET' },
-          })
+          }
         );
       });
     });
 
     describe('rotateProxy', () => {
       it('should rotate proxies correctly', () => {
-        baseClass.rotateProxy();
-        expect(baseClass.getCurrentProxy()).toEqual(ok(proxies[1]));
+        baseClass.rotateProxy()._unsafeUnwrap();
+        expect(baseClass.getCurrentProxy()._unsafeUnwrap()).toEqual(proxies[1]);
       });
 
       it('should wrap around to the first proxy', () => {
-        expect(baseClass.getCurrentProxy()).toEqual(ok(proxies[0]));
-        baseClass.rotateProxy();
-        expect(baseClass.getCurrentProxy()).toEqual(ok(proxies[1]));
-        baseClass.rotateProxy();
-        expect(baseClass.getCurrentProxy()).toEqual(ok(proxies[0]));
+        expect(baseClass.getCurrentProxy()._unsafeUnwrap()).toEqual(proxies[0]);
+        baseClass.rotateProxy()._unsafeUnwrap();
+        expect(baseClass.getCurrentProxy()._unsafeUnwrap()).toEqual(proxies[1]);
+        baseClass.rotateProxy()._unsafeUnwrap();
+        expect(baseClass.getCurrentProxy()._unsafeUnwrap()).toEqual(proxies[0]);
       });
 
       it('should return error if no proxies to rotate', () => {
         const newBaseClass = new BaseClass();
-        expect(newBaseClass.rotateProxy()).toMatchObject(
-          err({
-            reason: 'TRADEKIT_ERROR',
-            info: { code: 'PROXY_UNSET' },
-          })
-        );
+        // eslint-disable-next-line neverthrow/must-use-result
+        expect(newBaseClass.rotateProxy()._unsafeUnwrapErr()).toMatchObject({
+          reason: 'TRADEKIT_ERROR',
+          info: { code: 'PROXY_UNSET' },
+        });
       });
     });
   });

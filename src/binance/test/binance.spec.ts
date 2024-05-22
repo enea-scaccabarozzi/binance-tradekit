@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, Mocked } from 'vitest';
 import { binance, Ticker, Tickers, Balances, ExchangeError, Order } from 'ccxt';
+import { ok } from 'neverthrow';
 
 import { Binance } from '../index';
 import { TradekitOptions } from '../../types/shared';
@@ -7,6 +8,7 @@ import {
   SubscribeToTikerOptions,
   SubscribeToTikersOptions,
 } from '../../types/shared/tickers';
+import { ccxtBalanceAdapter } from '../../shared/adapters/balance';
 
 // Mock the binance class
 vi.mock('ccxt', async () => {
@@ -29,6 +31,20 @@ vi.mock('ccxt', async () => {
     },
   };
 });
+
+vi.mock('../../shared/adapters/ticker.ts', () => ({
+  ccxtTickerAdapter: vi.fn().mockImplementation((tiker: Ticker) => ok(tiker)),
+}));
+
+vi.mock('../../shared/adapters/balance.ts', () => ({
+  ccxtBalanceAdapter: vi
+    .fn()
+    .mockImplementation((balance: Balances) => balance),
+}));
+
+vi.mock('../../shared/adapters/order.ts', () => ({
+  ccxtOrderAdapter: vi.fn().mockImplementation((order: Order) => ok(order)),
+}));
 
 // Mock the handleError function
 vi.mock('../errors.ts', () => ({
@@ -203,18 +219,19 @@ describe('Binance', () => {
       exchangeMock.fetchBalance.mockResolvedValue(balance);
       const rotateProxySpy = vi.spyOn(binance, 'rotateProxy');
       const syncProxySpy = vi.spyOn(binance, 'syncProxy' as keyof Binance);
+      vi.mocked(ccxtBalanceAdapter).mockReturnValue({
+        currencies: {
+          BTC: { free: 1, used: 0.5, total: 1.5 },
+          ETH: { free: 2, used: 1, total: 3 },
+        },
+        timestamp: 0,
+        datetime: new Date(),
+      });
 
       const result = await binance.getBalance({ currencies: ['BTC'] });
 
       expect(result.isOk()).toBe(true);
-      expect(result._unsafeUnwrap()).toEqual({
-        free: { BTC: 1 },
-        used: { BTC: 0.5 },
-        total: { BTC: 1.5 },
-        info: {},
-        datetime: '',
-        BTC: balance.BTC,
-      });
+      expect(Object.keys(result._unsafeUnwrap().currencies)).toEqual(['BTC']);
       expect(rotateProxySpy).toHaveBeenCalled();
       expect(syncProxySpy).toHaveBeenCalled();
     });

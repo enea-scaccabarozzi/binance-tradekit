@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, Mocked } from 'vitest';
 import { bybit, Ticker, Tickers, Balances, ExchangeError, Order } from 'ccxt';
+import { ok } from 'neverthrow';
 
 import { Bybit } from '../index';
 import { TradekitOptions } from '../../types/shared';
@@ -7,6 +8,7 @@ import {
   SubscribeToTikerOptions,
   SubscribeToTikersOptions,
 } from '../../types/shared/tickers';
+import { ccxtBalanceAdapter } from '../../shared/adapters/balance';
 
 // Mock the bybit class
 vi.mock('ccxt', async () => {
@@ -19,6 +21,7 @@ vi.mock('ccxt', async () => {
         fetchTicker: vi.fn(),
         fetchTickers: vi.fn(),
         fetchBalance: vi.fn(),
+        fetchClosedOrder: vi.fn(),
         setLeverage: vi.fn(),
         createMarketOrder: vi.fn(),
         fetchOpenOrders: vi.fn(),
@@ -30,12 +33,25 @@ vi.mock('ccxt', async () => {
   };
 });
 
-// Mock the handleError function
 vi.mock('../errors.ts', () => ({
   handleError: vi.fn().mockImplementation((e: Error) => ({
     message: 'error',
     details: e.message,
   })),
+}));
+
+vi.mock('../../shared/adapters/ticker.ts', () => ({
+  ccxtTickerAdapter: vi.fn().mockImplementation((tiker: Ticker) => ok(tiker)),
+}));
+
+vi.mock('../../shared/adapters/balance.ts', () => ({
+  ccxtBalanceAdapter: vi
+    .fn()
+    .mockImplementation((balance: Balances) => balance),
+}));
+
+vi.mock('../../shared/adapters/order.ts', () => ({
+  ccxtOrderAdapter: vi.fn().mockImplementation((order: Order) => ok(order)),
 }));
 
 vi.mock('../websoket.ts', () => ({
@@ -58,15 +74,15 @@ describe('Bybit', () => {
   describe('getTicker', () => {
     it('should fetch ticker and rotate proxy', async () => {
       exchangeMock.fetchTicker.mockResolvedValue({
-        symbol: 'BTC/USDT',
+        symbol: 'BTC/USDT:USDT',
       } as Ticker);
       const rotateProxySpy = vi.spyOn(bybit, 'rotateProxy');
       const syncProxySpy = vi.spyOn(bybit, 'syncProxy' as keyof Bybit);
 
-      const result = await bybit.getTicker({ symbol: 'BTC/USDT' });
+      const result = await bybit.getTicker({ symbol: 'BTC/USDT:USDT' });
 
       expect(result.isOk()).toBe(true);
-      expect(result._unsafeUnwrap()).toEqual({ symbol: 'BTC/USDT' });
+      expect(result._unsafeUnwrap()).toEqual({ symbol: 'BTC/USDT:USDT' });
       expect(rotateProxySpy).toHaveBeenCalled();
       expect(syncProxySpy).toHaveBeenCalled();
     });
@@ -208,19 +224,19 @@ describe('Bybit', () => {
       exchangeMock.fetchBalance.mockResolvedValue(balance);
       const rotateProxySpy = vi.spyOn(bybit, 'rotateProxy');
       const syncProxySpy = vi.spyOn(bybit, 'syncProxy' as keyof Bybit);
+      vi.mocked(ccxtBalanceAdapter).mockReturnValue({
+        currencies: {
+          BTC: { free: 1, used: 0.5, total: 1.5 },
+          ETH: { free: 2, used: 1, total: 3 },
+        },
+        timestamp: 0,
+        datetime: new Date(),
+      });
 
       const result = await bybit.getBalance({ currencies: ['BTC'] });
 
       expect(result.isOk()).toBe(true);
-      expect(result._unsafeUnwrap()).toEqual({
-        free: { BTC: 1 },
-        used: { BTC: 0.5 },
-        total: { BTC: 1.5 },
-        debt: {},
-        info: {},
-        datetime: '',
-        BTC: balance.BTC,
-      });
+      expect(Object.keys(result._unsafeUnwrap().currencies)).toEqual(['BTC']);
       expect(rotateProxySpy).toHaveBeenCalled();
       expect(syncProxySpy).toHaveBeenCalled();
     });
@@ -316,6 +332,7 @@ describe('Bybit', () => {
       const order = { id: '1' } as Order;
       exchangeMock.createMarketOrder.mockResolvedValue(order);
       exchangeMock.fetchOpenOrders.mockResolvedValue([]);
+      exchangeMock.fetchClosedOrder.mockResolvedValue(order);
       const rotateProxySpy = vi.spyOn(bybit, 'rotateProxy');
       const syncProxySpy = vi.spyOn(bybit, 'syncProxy' as keyof Bybit);
 
@@ -376,6 +393,7 @@ describe('Bybit', () => {
       const order = { id: '1' } as Order;
       exchangeMock.createMarketOrder.mockResolvedValue(order);
       exchangeMock.fetchOpenOrders.mockResolvedValue([]);
+      exchangeMock.fetchClosedOrder.mockResolvedValue(order);
       const rotateProxySpy = vi.spyOn(bybit, 'rotateProxy');
       const syncProxySpy = vi.spyOn(bybit, 'syncProxy' as keyof Bybit);
 
@@ -436,6 +454,7 @@ describe('Bybit', () => {
       const order = { id: '1' } as Order;
       exchangeMock.createMarketOrder.mockResolvedValue(order);
       exchangeMock.fetchOpenOrders.mockResolvedValue([]);
+      exchangeMock.fetchClosedOrder.mockResolvedValue(order);
       const rotateProxySpy = vi.spyOn(bybit, 'rotateProxy');
       const syncProxySpy = vi.spyOn(bybit, 'syncProxy' as keyof Bybit);
 
@@ -496,6 +515,7 @@ describe('Bybit', () => {
       const order = { id: '1' } as Order;
       exchangeMock.createMarketOrder.mockResolvedValue(order);
       exchangeMock.fetchOpenOrders.mockResolvedValue([]);
+      exchangeMock.fetchClosedOrder.mockResolvedValue(order);
       const rotateProxySpy = vi.spyOn(bybit, 'rotateProxy');
       const syncProxySpy = vi.spyOn(bybit, 'syncProxy' as keyof Bybit);
 
