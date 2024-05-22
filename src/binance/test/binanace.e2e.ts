@@ -5,70 +5,47 @@ import 'dotenv/config';
 import { Binance } from '../index';
 import { ProxyOptions, ProxyProtocol } from '../../types/shared/proxy';
 
-// Define schemas using zod
-const TickerSchema = z.object({
+const tickerSchema = z.object({
   symbol: z.string(),
-  timestamp: z.number().optional(),
-  datetime: z.string().optional(),
-  high: z.number().optional(),
-  low: z.number().optional(),
-  bid: z.number().optional(),
-  bidVolume: z.number().optional(),
-  ask: z.number().optional(),
-  askVolume: z.number().optional(),
-  vwap: z.number().optional(),
-  open: z.number().optional(),
-  close: z.number().optional(),
-  last: z.number().optional(),
-  previousClose: z.number().optional(),
-  change: z.number().optional(),
-  percentage: z.number().optional(),
-  average: z.number().optional(),
-  baseVolume: z.number().optional(),
-  quoteVolume: z.number().optional(),
-  info: z.object({}),
+  timestamp: z.number(),
+  datetime: z.date(),
+  last: z.number(),
+  close: z.number(),
+  absChange: z.number(),
+  percChange: z.number(),
+  high: z.number(),
+  low: z.number(),
+  volume: z.number(),
+  baseVolume: z.number(),
+  quoteVolume: z.number(),
+  open: z.number(),
+  openTime: z.date(),
+  info: z.any(),
 });
 
-const BalanceSchema = z.object({
-  free: z.record(z.number().optional()),
-  used: z.record(z.number().optional()),
-  total: z.record(z.number().optional()),
-  info: z.object({}),
-  datetime: z.string().optional(),
+const currencyBalanceSchema = z.object({
+  free: z.number(),
+  used: z.number(),
+  total: z.number(),
 });
 
-const OrderSchema = z.object({
-  id: z.string(),
+const balanceSchema = z.object({
+  currencies: z.record(currencyBalanceSchema),
+  timestamp: z.number(),
+  datetime: z.date(),
+});
+
+const orderSchema = z.object({
+  orderId: z.string(),
+  symbol: z.string(),
+  price: z.number(),
+  quantity: z.number(),
+  orderType: z.enum(['market', 'limit', 'stop', 'stop-limit']),
+  side: z.enum(['buy', 'sell']),
+  status: z.enum(['new', 'filled', 'canceled']),
+  timestamp: z.number(),
+  datetime: z.date(),
   clientOrderId: z.string().optional(),
-  timestamp: z.number().optional(),
-  datetime: z.string().optional(),
-  lastTradeTimestamp: z.number().optional(),
-  lastUpdateTimestamp: z.number().optional(),
-  status: z.string().optional(),
-  symbol: z.string(),
-  type: z.string().optional(),
-  timeInForce: z.string().optional(),
-  side: z.string().optional(),
-  price: z.number().optional(),
-  average: z.number().optional(),
-  amount: z.number().optional(),
-  filled: z.number().optional(),
-  remaining: z.number().optional(),
-  stopPrice: z.number().optional(),
-  triggerPrice: z.number().optional(),
-  takeProfitPrice: z.number().optional(),
-  stopLossPrice: z.number().optional(),
-  cost: z.number().optional(),
-  reduceOnly: z.boolean().optional(),
-  postOnly: z.boolean().optional(),
-  fee: z
-    .object({
-      cost: z.number().optional(),
-      currency: z.string().optional(),
-    })
-    .optional(),
-  trades: z.array(z.object({})).optional(),
-  info: z.object({}),
 });
 
 const API_KEY = process.env.BINANCE_TESTNET_API_KEY;
@@ -115,7 +92,7 @@ describe('Binance Class Integration Tests', () => {
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
         // Validate result against TickerSchema
-        TickerSchema.parse(result.value);
+        tickerSchema.parse(result.value);
       }
     });
 
@@ -140,7 +117,7 @@ describe('Binance Class Integration Tests', () => {
       if (result.isOk()) {
         expect(result.value).toHaveLength(symbols.length);
         // Validate each ticker against TickerSchema
-        result.value.forEach(ticker => TickerSchema.parse(ticker));
+        result.value.forEach(ticker => tickerSchema.parse(ticker));
       }
     });
 
@@ -157,125 +134,19 @@ describe('Binance Class Integration Tests', () => {
     });
   });
 
-  // describe('subscribeToTicker', () => {
-  //   it('should retrive ticker events successfully', async () => {
-  //     const symbol = 'BTC/USDT:USDT';
-  //     const onUpdate = vi.fn();
-  //     const onClose = vi.fn();
-  //     const onSubscription = vi.fn();
-  //     const onError = vi.fn();
-  //     const opts = {
-  //       symbol,
-  //       onUpdate,
-  //       onClose,
-  //       onSubscription,
-  //       onError,
-  //     };
-  //     const result = binance.subscribeToTicker(opts);
-  //     expect(result).toBeDefined();
-  //     await new Promise(resolve => setTimeout(resolve, 6000));
-  //     expect(onUpdate).toHaveBeenCalled();
-  //     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  //     const ticker = onUpdate.mock.calls[0][0];
-  //     TickerSchema.parse(ticker);
-  //     expect(onSubscription).toBeCalledTimes(1);
-  //     result.close();
-  //     await new Promise(resolve => setTimeout(resolve, 200));
-  //     expect(onClose).toBeCalledTimes(1);
-  //     expect(onError).not.toBeCalled();
-  //   });
-
-  //   it('should handle error when subcribing to non-existent tickers', async () => {
-  //     const symbol = 'NONEXISTING/USDT:USDT';
-  //     const onUpdate = vi.fn();
-  //     const onClose = vi.fn();
-  //     const onSubscription = vi.fn();
-  //     const onError = vi.fn();
-  //     const opts = {
-  //       symbol,
-  //       onUpdate,
-  //       onClose,
-  //       onSubscription,
-  //       onError,
-  //     };
-  //     const result = binance.subscribeToTicker(opts);
-  //     expect(result).toBeDefined();
-  //     await new Promise(resolve => setTimeout(resolve, 6000));
-  //     expect(onSubscription).toBeCalledTimes(1);
-  //     expect(onError).not.toBeCalled();
-  //     result.close();
-  //     await new Promise(resolve => setTimeout(resolve, 200));
-  //     expect(onClose).toBeCalledTimes(1);
-  //     expect(onUpdate).not.toBeCalled();
-  //   });
-  // });
-
-  // describe('subscribeToTickers', () => {
-  //   it('should retrive tickers events successfully', async () => {
-  //     const symbols = ['BTC/USDT:USDT', 'ETH/USDT:USDT'];
-  //     const onUpdate = vi.fn();
-  //     const onClose = vi.fn();
-  //     const onSubscription = vi.fn();
-  //     const onError = vi.fn();
-  //     const opts = {
-  //       symbols,
-  //       onUpdate,
-  //       onClose,
-  //       onSubscription,
-  //       onError,
-  //     };
-  //     const result = binance.subscribeToTickers(opts);
-  //     expect(result).toBeDefined();
-  //     await new Promise(resolve => setTimeout(resolve, 6000));
-  //     expect(onUpdate).toHaveBeenCalled();
-  //     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  //     const ticker = onUpdate.mock.calls[0][0];
-  //     TickerSchema.parse(ticker);
-  //     expect(onSubscription).toBeCalledTimes(2);
-  //     result.close();
-  //     await new Promise(resolve => setTimeout(resolve, 200));
-  //     expect(onClose).toBeCalledTimes(2);
-  //     expect(onError).not.toBeCalled();
-  //   });
-
-  //   it('should handle error when subcribing to non-existent tickers', async () => {
-  //     const symbols = ['NONEXISTING/USDT:USDT', 'NONEXISTING2/USDT:USDT'];
-  //     const onUpdate = vi.fn();
-  //     const onClose = vi.fn();
-  //     const onSubscription = vi.fn();
-  //     const onError = vi.fn();
-  //     const opts = {
-  //       symbols,
-  //       onUpdate,
-  //       onClose,
-  //       onSubscription,
-  //       onError,
-  //     };
-  //     const result = binance.subscribeToTickers(opts);
-  //     expect(result).toBeDefined();
-  //     await new Promise(resolve => setTimeout(resolve, 6000));
-  //     expect(onSubscription).toBeCalledTimes(2);
-  //     expect(onError).not.toBeCalled();
-  //     result.close();
-  //     await new Promise(resolve => setTimeout(resolve, 200));
-  //     expect(onClose).toBeCalledTimes(1);
-  //     expect(onUpdate).not.toBeCalled();
-  //   });
-  // });
-
   describe('getBalance', () => {
     it('should fetch account balance successfully', async () => {
       const result = await binance.getBalance();
       const balance = result._unsafeUnwrap();
-      expect(() => BalanceSchema.parse(balance)).not.toThrow();
+      expect(() => balanceSchema.parse(balance)).not.toThrow();
     });
 
     it('should filter account balance when symbols are provided', async () => {
       const result = await binance.getBalance({ currencies: ['USDT'] });
       // Validate filtered balance against BalanceSchema
       const balance = result._unsafeUnwrap();
-      BalanceSchema.parse(balance);
-      expect(Object.keys(balance.free)).toContain('USDT');
+      balanceSchema.parse(balance);
+      expect(Object.keys(balance.currencies)).toEqual(['USDT']);
     });
   });
 
@@ -340,7 +211,7 @@ describe('Binance Class Integration Tests', () => {
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
         // Validate result against OrderSchema
-        OrderSchema.parse(result.value);
+        orderSchema.parse(result.value);
       }
     });
 
@@ -369,7 +240,7 @@ describe('Binance Class Integration Tests', () => {
         timeInForce: 30000,
       };
       const result = await binance.closeLong(opts);
-      OrderSchema.parse(result._unsafeUnwrap());
+      orderSchema.parse(result._unsafeUnwrap());
       expect(result.isOk()).toBe(true);
     });
 
@@ -420,7 +291,7 @@ describe('Binance Class Integration Tests', () => {
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
         // Validate result against OrderSchema
-        OrderSchema.parse(result.value);
+        orderSchema.parse(result.value);
       }
     });
 
@@ -452,7 +323,7 @@ describe('Binance Class Integration Tests', () => {
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
         // Validate result against OrderSchema
-        OrderSchema.parse(result.value);
+        orderSchema.parse(result.value);
       }
     });
 
