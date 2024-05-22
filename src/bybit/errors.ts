@@ -1,10 +1,17 @@
-import * as ccxt from 'ccxt';
+import {
+  RateLimitExceeded,
+  NetworkError,
+  ExchangeError,
+  BadSymbol,
+  InvalidOrder,
+  BaseError,
+} from 'ccxt';
 
 import { TradekitError } from '../types/shared/errors';
 
 export const handleError = (e: unknown): TradekitError => {
-  if (e instanceof ccxt.NetworkError) {
-    if (e instanceof ccxt.RateLimitExceeded) return { reason: 'RATE_LIMIT' };
+  if (e instanceof NetworkError) {
+    if (e instanceof RateLimitExceeded) return { reason: 'RATE_LIMIT' };
     else
       return {
         reason: 'NETWORK_ERROR',
@@ -13,8 +20,8 @@ export const handleError = (e: unknown): TradekitError => {
         },
       };
   }
-  if (e instanceof ccxt.ExchangeError) {
-    if (e instanceof ccxt.BadSymbol) {
+  if (e instanceof ExchangeError) {
+    if (e instanceof BadSymbol) {
       return {
         reason: 'TRADEKIT_ERROR',
         info: {
@@ -24,7 +31,7 @@ export const handleError = (e: unknown): TradekitError => {
       };
     }
 
-    if (e instanceof ccxt.InvalidOrder) {
+    if (e instanceof InvalidOrder) {
       return {
         reason: 'TRADEKIT_ERROR',
         info: {
@@ -47,7 +54,7 @@ export const handleError = (e: unknown): TradekitError => {
       },
     };
   }
-  if (e instanceof ccxt.BaseError) {
+  if (e instanceof BaseError) {
     return {
       reason: 'CCXT_ERROR',
       info: {

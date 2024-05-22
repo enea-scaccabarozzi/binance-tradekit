@@ -1,5 +1,7 @@
 #!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
 
+pnpm lint;
+pnpm build;
 CI="true" pnpm test;
 CI="true" pnpm test:e2e;

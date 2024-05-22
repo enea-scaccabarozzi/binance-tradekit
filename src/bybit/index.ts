@@ -1,5 +1,5 @@
-import * as ccxt from 'ccxt';
-import { ok, err } from 'neverthrow';
+import ccxt, { ExchangeError } from 'ccxt';
+import { ok, err, Result } from 'neverthrow';
 
 import { BaseClass } from '../shared/base';
 import { Tradekit, TradekitOptions } from '../types/shared';
@@ -8,14 +8,26 @@ import {
   GetTikersOptions,
   SubscribeToTikerOptions,
   SubscribeToTikersOptions,
+  Ticker,
 } from '../types/shared/tickers';
 import { TradekitResult } from '../types/shared/errors';
-import { GetBalanceOptions, SetLeverageOptions } from '../types/shared/account';
+import {
+  Balance,
+  CurrencyBalance,
+  GetBalanceOptions,
+  SetLeverageOptions,
+} from '../types/shared/account';
 import {
   ClosePositionOptions,
   OpenPositionOptions,
+  Order,
 } from '../types/shared/orders';
 import { handleError } from './errors';
+import { BybitStreamClient } from './websoket';
+import { syncCCXTProxy } from '../shared/proxy/sync';
+import { ccxtTickerAdapter } from '../shared/adapters/ticker';
+import { ccxtBalanceAdapter } from '../shared/adapters/balance';
+import { ccxtOrderAdapter } from '../shared/adapters/order';
 
 export class Bybit extends BaseClass implements Tradekit {
   protected exchange = new ccxt.bybit();
@@ -35,10 +47,10 @@ export class Bybit extends BaseClass implements Tradekit {
 
   public async getTicker({
     symbol,
-  }: GetTikerOptions): Promise<TradekitResult<ccxt.Ticker>> {
+  }: GetTikerOptions): Promise<TradekitResult<Ticker>> {
     try {
       const tiker = await this.exchange.fetchTicker(symbol);
-      return ok(tiker);
+      return ccxtTickerAdapter(tiker);
     } catch (e) {
       return err(handleError(e));
     } finally {
@@ -48,10 +60,11 @@ export class Bybit extends BaseClass implements Tradekit {
 
   public async getTickers({
     symbols,
-  }: GetTikersOptions): Promise<TradekitResult<ccxt.Ticker[]>> {
+  }: GetTikersOptions): Promise<TradekitResult<Ticker[]>> {
     try {
       const tikers = await this.exchange.fetchTickers(symbols);
-      return ok(Object.values(tikers));
+      const res = Object.values(tikers).map(ccxtTickerAdapter);
+      return Result.combine(res);
     } catch (e) {
       return err(handleError(e));
     } finally {
@@ -59,60 +72,37 @@ export class Bybit extends BaseClass implements Tradekit {
     }
   }
 
-  public subscribeToTicker(
-    opts: SubscribeToTikerOptions
-  ): TradekitResult<never> {
-    return err({
-      reason: 'TRADEKIT_ERROR',
-      info: {
-        code: 'NOT_IMPLEMENTED',
-        msg: 'This method is not implemented yet.',
-      },
+  public subscribeToTicker(opts: SubscribeToTikerOptions): BybitStreamClient {
+    return new BybitStreamClient({
+      ...opts,
+      testnet: this.sandbox,
+      symbols: [opts.symbol],
     });
   }
 
-  public subscribeToTickers(
-    opts: SubscribeToTikersOptions
-  ): TradekitResult<never> {
-    return err({
-      reason: 'TRADEKIT_ERROR',
-      info: {
-        code: 'NOT_IMPLEMENTED',
-        msg: 'This method is not implemented yet.',
-      },
+  public subscribeToTickers(opts: SubscribeToTikersOptions): BybitStreamClient {
+    return new BybitStreamClient({
+      ...opts,
+      testnet: this.sandbox,
+      symbols: [...opts.symbols],
     });
   }
 
   public async getBalance(
     opts?: GetBalanceOptions
-  ): Promise<TradekitResult<ccxt.Balances>> {
+  ): Promise<TradekitResult<Balance>> {
     try {
-      const balance = await this.exchange.fetchBalance();
+      const balance = ccxtBalanceAdapter(await this.exchange.fetchBalance());
 
       if (opts?.currencies) {
-        const filtered: ccxt.Balances = {
-          free: {} as ccxt.Balance,
-          used: {} as ccxt.Balance,
-          total: {} as ccxt.Balance,
-          debt: {} as ccxt.Balance,
-          info: balance.info,
-          datetime: balance.datetime,
-        };
-
-        for (const currency of opts.currencies) {
-          if (currency in balance.free) {
-            filtered.free[currency as keyof ccxt.Balance] =
-              balance.free[currency as keyof ccxt.Balance];
-            filtered.used[currency as keyof ccxt.Balance] =
-              balance.used[currency as keyof ccxt.Balance];
-            filtered.total[currency as keyof ccxt.Balance] =
-              balance.total[currency as keyof ccxt.Balance];
-            filtered.debt[currency as keyof ccxt.Balance] =
-              balance.debt[currency as keyof ccxt.Balance];
+        const currencies = opts.currencies;
+        const filteredCurrencies: { [currency: string]: CurrencyBalance } = {};
+        for (const currency in balance.currencies) {
+          if (currencies.includes(currency)) {
+            filteredCurrencies[currency] = balance.currencies[currency];
           }
         }
-
-        return ok(filtered);
+        balance.currencies = filteredCurrencies;
       }
 
       return ok(balance);
@@ -139,7 +129,7 @@ export class Bybit extends BaseClass implements Tradekit {
       await this.exchange.setLeverage(opts.leverage, opts.symbol);
       return ok(opts.leverage);
     } catch (e) {
-      if (e instanceof ccxt.ExchangeError) {
+      if (e instanceof ExchangeError) {
         try {
           const payload = JSON.parse(e.message.replace('bybit ', '')) as {
             retCode: number;
@@ -160,20 +150,20 @@ export class Bybit extends BaseClass implements Tradekit {
 
   public async openLong(
     opts: OpenPositionOptions
-  ): Promise<TradekitResult<ccxt.Order>> {
+  ): Promise<TradekitResult<Order>> {
     return this.openPosition(opts, 'buy');
   }
 
   public async openShort(
     opts: OpenPositionOptions
-  ): Promise<TradekitResult<ccxt.Order>> {
+  ): Promise<TradekitResult<Order>> {
     return this.openPosition(opts, 'sell');
   }
 
   private async openPosition(
     { symbol, amount, timeInForce }: OpenPositionOptions,
     side: 'buy' | 'sell'
-  ): Promise<TradekitResult<ccxt.Order>> {
+  ): Promise<TradekitResult<Order>> {
     try {
       const order = await this.exchange.createMarketOrder(symbol, side, amount);
       const startTime = Date.now();
@@ -182,7 +172,8 @@ export class Bybit extends BaseClass implements Tradekit {
         await new Promise(resolve => setTimeout(resolve, 1000));
         const orders = await this.exchange.fetchOpenOrders();
         if (orders.find(o => o.id === order.id) === undefined) {
-          return ok(order);
+          const result = await this.exchange.fetchClosedOrder(order.id);
+          return ccxtOrderAdapter(result);
         }
       }
       await this.exchange.cancelOrder(order.id);
@@ -202,20 +193,20 @@ export class Bybit extends BaseClass implements Tradekit {
 
   public async closeLong(
     opts: ClosePositionOptions
-  ): Promise<TradekitResult<ccxt.Order>> {
+  ): Promise<TradekitResult<Order>> {
     return this.closePosition(opts, 'sell');
   }
 
   public async closeShort(
     opts: ClosePositionOptions
-  ): Promise<TradekitResult<ccxt.Order>> {
+  ): Promise<TradekitResult<Order>> {
     return this.closePosition(opts, 'buy');
   }
 
   private async closePosition(
     { symbol, amount, timeInForce }: ClosePositionOptions,
     side: 'buy' | 'sell'
-  ): Promise<TradekitResult<ccxt.Order>> {
+  ): Promise<TradekitResult<Order>> {
     try {
       const order = await this.exchange.createMarketOrder(
         symbol,
@@ -232,7 +223,8 @@ export class Bybit extends BaseClass implements Tradekit {
         await new Promise(resolve => setTimeout(resolve, 1000));
         const orders = await this.exchange.fetchOpenOrders();
         if (orders.find(o => o.id === order.id) === undefined) {
-          return ok(order);
+          const result = await this.exchange.fetchClosedOrder(order.id);
+          return ccxtOrderAdapter(result);
         }
       }
       await this.exchange.cancelOrder(order.id);
@@ -251,17 +243,9 @@ export class Bybit extends BaseClass implements Tradekit {
   }
 
   private syncProxy() {
-    this.rotateProxy();
-    this.getCurrentProxy().match(
+    this.rotateProxy().match(
       proxy => {
-        this.exchange.httpProxy = `http://${proxy.host}:${proxy.port}`;
-        if (proxy.auth === undefined) return;
-        const auth = Buffer.from(
-          `${proxy.auth.username}:${proxy.auth.password}`
-        ).toString('base64');
-        this.exchange.headers = {
-          'Proxy-Authorization': `Basic ${auth}`,
-        };
+        this.exchange = syncCCXTProxy(this.exchange, proxy);
       },
       () => (this.exchange.proxy = undefined)
     );
