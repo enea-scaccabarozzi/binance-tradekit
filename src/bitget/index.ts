@@ -24,13 +24,15 @@ import {
 } from '../types/shared/orders';
 import { handleError } from './errors';
 import { syncCCXTProxy } from '../shared/proxy/sync';
-import { BinanceStreamClient } from './websoket';
+import { BitgetStreamClient } from './websoket';
 import { ccxtTickerAdapter } from '../shared/adapters/ticker';
 import { ccxtBalanceAdapter } from '../shared/adapters/balance';
 import { ccxtOrderAdapter } from '../shared/adapters/order';
+import { normalizeSymbol } from './utils';
+import { BitgetOrderResponse } from '../types/bitget';
 
-export class Binance extends BaseClass implements Tradekit {
-  protected exchange = new ccxt.binance();
+export class Bitget extends BaseClass implements Tradekit {
+  protected exchange = new ccxt.bitget();
 
   constructor(opts?: TradekitOptions) {
     super(opts);
@@ -38,7 +40,9 @@ export class Binance extends BaseClass implements Tradekit {
     if (opts?.auth) {
       this.exchange.apiKey = opts.auth.key;
       this.exchange.secret = opts.auth.secret;
+      if (opts.auth.passphrase) this.exchange.password = opts.auth.passphrase;
     }
+
     if (opts?.sandbox) this.exchange.setSandboxMode(true);
 
     this.exchange.options['defaultType'] = 'swap';
@@ -62,7 +66,9 @@ export class Binance extends BaseClass implements Tradekit {
     symbols,
   }: GetTikersOptions): Promise<TradekitResult<Ticker[]>> {
     try {
-      const tikers = await this.exchange.fetchTickers(symbols);
+      const tikers = await Promise.all(
+        symbols.map(s => this.exchange.fetchTicker(s))
+      );
       const res = Object.values(tikers).map(ccxtTickerAdapter);
       return Result.combine(res);
     } catch (e) {
@@ -72,8 +78,8 @@ export class Binance extends BaseClass implements Tradekit {
     }
   }
 
-  public subscribeToTicker(opts: SubscribeToTikerOptions): BinanceStreamClient {
-    return new BinanceStreamClient({
+  public subscribeToTicker(opts: SubscribeToTikerOptions): BitgetStreamClient {
+    return new BitgetStreamClient({
       ...opts,
       symbols: [opts.symbol],
     });
@@ -81,8 +87,8 @@ export class Binance extends BaseClass implements Tradekit {
 
   public subscribeToTickers(
     opts: SubscribeToTikersOptions
-  ): BinanceStreamClient {
-    return new BinanceStreamClient({
+  ): BitgetStreamClient {
+    return new BitgetStreamClient({
       ...opts,
       symbols: [...opts.symbols],
     });
@@ -122,11 +128,25 @@ export class Binance extends BaseClass implements Tradekit {
           reason: 'TRADEKIT_ERROR',
           info: {
             code: 'BAD_SYMBOL',
-            msg: 'Unable to set global leverage for binance. Please provide a symbol.',
+            msg: 'Unable to set global leverage for bitget. Please provide a symbol.',
           },
         });
       }
-      await this.exchange.setLeverage(opts.leverage, opts.symbol);
+
+      await this.exchange.privateMixPostV2MixAccountSetLeverage({
+        symbol: normalizeSymbol(opts.symbol, this.sandbox),
+        productType: `${this.sandbox ? 'S' : ''}USDT-FUTURES`,
+        marginCoin: `${this.sandbox ? 'S' : ''}USDT`,
+        leverage: 1,
+        holdSide: 'long',
+      });
+      await this.exchange.privateMixPostV2MixAccountSetLeverage({
+        symbol: normalizeSymbol(opts.symbol, this.sandbox),
+        productType: `${this.sandbox ? 'S' : ''}USDT-FUTURES`,
+        marginCoin: `${this.sandbox ? 'S' : ''}USDT`,
+        leverage: 1,
+        holdSide: 'short',
+      });
       return ok(opts.leverage);
     } catch (e) {
       return err(handleError(e));
@@ -152,16 +172,27 @@ export class Binance extends BaseClass implements Tradekit {
     side: 'buy' | 'sell'
   ): Promise<TradekitResult<Order>> {
     try {
-      const order = await this.exchange.createMarketOrder(symbol, side, amount);
+      const order: BitgetOrderResponse =
+        await this.exchange.privateMixPostV2MixOrderPlaceOrder({
+          symbol: normalizeSymbol(symbol, this.sandbox),
+          productType: `${this.sandbox ? 'S' : ''}USDT-FUTURES`,
+          marginMode: 'isolated',
+          marginCoin: `${this.sandbox ? 'S' : ''}USDT`,
+          size: amount,
+          side,
+          orderType: 'market',
+        });
       const startTime = Date.now();
       const timeOut = timeInForce ?? 30000;
       while (Date.now() - startTime < timeOut) {
         await new Promise(resolve => setTimeout(resolve, 1000));
-        const orders = await this.exchange.fetchOpenOrders(symbol);
-        if (orders.find(o => o.id === order.id) === undefined)
-          return ccxtOrderAdapter(order);
+        const orderStatus = await this.exchange.fetchOrder(
+          order.data.orderId,
+          symbol
+        );
+        if (orderStatus.remaining === 0) return ccxtOrderAdapter(orderStatus);
       }
-      await this.exchange.cancelOrder(order.id);
+      await this.exchange.cancelOrder(order.data.orderId, symbol);
       return err({
         reason: 'TRADEKIT_ERROR',
         info: {
@@ -193,24 +224,28 @@ export class Binance extends BaseClass implements Tradekit {
     side: 'buy' | 'sell'
   ): Promise<TradekitResult<Order>> {
     try {
-      const order = await this.exchange.createMarketOrder(
-        symbol,
-        side,
-        amount,
-        undefined,
-        {
-          reduceOnly: true,
-        }
-      );
+      const order: BitgetOrderResponse =
+        await this.exchange.privateMixPostV2MixOrderPlaceOrder({
+          symbol: normalizeSymbol(symbol, this.sandbox),
+          productType: `${this.sandbox ? 'S' : ''}USDT-FUTURES`,
+          marginMode: 'isolated',
+          marginCoin: `${this.sandbox ? 'S' : ''}USDT`,
+          size: amount,
+          side,
+          orderType: 'market',
+          reduceOnly: 'YES',
+        });
       const startTime = Date.now();
       const timeOut = timeInForce ?? 30000;
       while (Date.now() - startTime < timeOut) {
         await new Promise(resolve => setTimeout(resolve, 1000));
-        const orders = await this.exchange.fetchOpenOrders(symbol);
-        if (orders.find(o => o.id === order.id) === undefined)
-          return ccxtOrderAdapter(order);
+        const orderStatus = await this.exchange.fetchOrder(
+          order.data.orderId,
+          symbol
+        );
+        if (orderStatus.remaining === 0) return ccxtOrderAdapter(orderStatus);
       }
-      await this.exchange.cancelOrder(order.id);
+      await this.exchange.cancelOrder(order.data.orderId, symbol);
       return err({
         reason: 'TRADEKIT_ERROR',
         info: {
