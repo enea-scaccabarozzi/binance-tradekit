@@ -1,5 +1,3 @@
-import { Balances, Order, Ticker } from 'ccxt';
-
 import { ProxyOptions } from './proxy';
 import { TradekitResult } from './errors';
 import {
@@ -7,9 +5,10 @@ import {
   GetTikersOptions,
   SubscribeToTikerOptions,
   SubscribeToTikersOptions,
+  Ticker,
 } from './tickers';
-import { GetBalanceOptions, SetLeverageOptions } from './account';
-import { ClosePositionOptions, OpenPositionOptions } from './orders';
+import { Balance, GetBalanceOptions, SetLeverageOptions } from './account';
+import { ClosePositionOptions, OpenPositionOptions, Order } from './orders';
 import { StreamClient } from './websocket';
 
 export interface TradekitOptions {
@@ -46,7 +45,7 @@ export interface Tradekit {
   subscribeToTickers(opts: SubscribeToTikersOptions): StreamClient;
 
   /* Account Data */
-  getBalance(opts?: GetBalanceOptions): Promise<TradekitResult<Balances>>;
+  getBalance(opts?: GetBalanceOptions): Promise<TradekitResult<Balance>>;
   setLeverage(opts: SetLeverageOptions): Promise<TradekitResult<number>>;
 
   /* Position Management */

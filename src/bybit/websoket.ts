@@ -1,9 +1,8 @@
 import { WebsocketClient } from 'bybit-api';
-import { Ticker } from 'ccxt';
 
 import { TradekitError } from '../types/shared/errors';
 import { StreamClient } from '../types/shared/websocket';
-import { BaseSubscriptionOptions } from '../types/shared/tickers';
+import { BaseSubscriptionOptions, Ticker } from '../types/shared/tickers';
 import { BybitWssUpdate, BybitWssUpdateSnapshot } from '../types/bybit';
 
 export class BybitStreamClient implements StreamClient {
@@ -109,31 +108,33 @@ export class BybitStreamClient implements StreamClient {
     }
   };
 
-  private tickerAdapter = ({ data }: BybitWssUpdateSnapshot): Ticker => {
-    const timestamp = Date.now();
-    const datetime = new Date(timestamp).toISOString();
+  private tickerAdapter = (snapshot: BybitWssUpdateSnapshot): Ticker => {
+    const {
+      symbol,
+      lastPrice,
+      prevPrice24h,
+      highPrice24h,
+      lowPrice24h,
+      volume24h,
+      turnover24h,
+    } = snapshot.data;
+
     return {
-      symbol: data.symbol,
-      info: data,
-      timestamp: timestamp,
-      datetime: datetime,
-      high: parseFloat(data.highPrice24h),
-      low: parseFloat(data.lowPrice24h),
-      bid: parseFloat(data.bid1Price),
-      bidVolume: parseFloat(data.bid1Size),
-      ask: parseFloat(data.ask1Price),
-      askVolume: parseFloat(data.ask1Size),
-      vwap: parseFloat(data.turnover24h) / parseFloat(data.volume24h) || 0,
-      open: parseFloat(data.prevPrice24h),
-      close: parseFloat(data.lastPrice),
-      last: parseFloat(data.lastPrice),
-      previousClose: parseFloat(data.prevPrice24h),
-      change: parseFloat(data.lastPrice) - parseFloat(data.prevPrice24h),
-      percentage: parseFloat(data.price24hPcnt),
-      average:
-        (parseFloat(data.highPrice24h) + parseFloat(data.lowPrice24h)) / 2,
-      quoteVolume: parseFloat(data.turnover24h),
-      baseVolume: parseFloat(data.volume24h),
+      symbol,
+      timestamp: snapshot.ts,
+      datetime: new Date(snapshot.ts),
+      last: parseFloat(lastPrice),
+      close: parseFloat(lastPrice),
+      absChange: parseFloat(prevPrice24h) - parseFloat(lastPrice),
+      percChange: parseFloat(snapshot.data.price24hPcnt),
+      high: parseFloat(highPrice24h),
+      low: parseFloat(lowPrice24h),
+      volume: parseFloat(volume24h),
+      baseVolume: parseFloat(volume24h),
+      quoteVolume: parseFloat(turnover24h),
+      open: parseFloat(prevPrice24h),
+      openTime: new Date(snapshot.ts - 24 * 60 * 60 * 1000),
+      info: snapshot.data,
     };
   };
 }

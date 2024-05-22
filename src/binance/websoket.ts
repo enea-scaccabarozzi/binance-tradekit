@@ -3,11 +3,10 @@ import {
   WsMessage24hrTickerFormatted,
   DefaultLogger,
 } from 'binance';
-import { Ticker } from 'ccxt';
 
 import { TradekitError } from '../types/shared/errors';
 import { StreamClient } from '../types/shared/websocket';
-import { BaseSubscriptionOptions } from '../types/shared/tickers';
+import { BaseSubscriptionOptions, Ticker } from '../types/shared/tickers';
 import { BinanceWssUpdate } from '../types/binance';
 
 export class BinanceStreamClient implements StreamClient {
@@ -88,25 +87,20 @@ export class BinanceStreamClient implements StreamClient {
   private tickerAdapter = (data: BinanceWssUpdate): Ticker => {
     return {
       symbol: data.symbol,
+      timestamp: data.eventTime,
+      datetime: new Date(data.eventTime),
+      last: data.currentClose,
+      close: data.currentClose,
+      absChange: data.priceChange,
+      percChange: data.priceChangePercent,
+      high: data.high,
+      low: data.low,
+      volume: data.baseAssetVolume,
+      baseVolume: data.baseAssetVolume,
+      quoteVolume: data.quoteAssetVolume,
+      open: data.open,
+      openTime: new Date(data.openTime),
       info: data,
-      timestamp: Math.floor(data.eventTime / 1000),
-      datetime: new Date(data.eventTime).toISOString(),
-      high: Math.floor(data.high),
-      low: Math.floor(data.low),
-      bid: Math.floor(data.currentClose),
-      bidVolume: undefined,
-      ask: undefined,
-      askVolume: undefined,
-      vwap: Math.floor(data.weightedAveragePrice),
-      open: Math.floor(data.open),
-      close: Math.floor(data.currentClose),
-      last: Math.floor(data.currentClose),
-      previousClose: undefined,
-      change: Math.floor(data.priceChange),
-      percentage: Math.floor(data.priceChangePercent * 100),
-      average: undefined,
-      quoteVolume: Math.floor(data.quoteAssetVolume),
-      baseVolume: Math.floor(data.baseAssetVolume),
     };
   };
 }

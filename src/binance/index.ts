@@ -1,5 +1,5 @@
-import ccxt, { Ticker, Balance, Balances, ExchangeError, Order } from 'ccxt';
-import { ok, err } from 'neverthrow';
+import ccxt, { ExchangeError } from 'ccxt';
+import { ok, err, Result } from 'neverthrow';
 
 import { BaseClass } from '../shared/base';
 import { Tradekit, TradekitOptions } from '../types/shared';
@@ -8,16 +8,26 @@ import {
   GetTikersOptions,
   SubscribeToTikerOptions,
   SubscribeToTikersOptions,
+  Ticker,
 } from '../types/shared/tickers';
 import { TradekitResult } from '../types/shared/errors';
-import { GetBalanceOptions, SetLeverageOptions } from '../types/shared/account';
+import {
+  CurrencyBalance,
+  GetBalanceOptions,
+  SetLeverageOptions,
+  Balance,
+} from '../types/shared/account';
 import {
   ClosePositionOptions,
   OpenPositionOptions,
+  Order,
 } from '../types/shared/orders';
 import { handleError } from './errors';
 import { syncCCXTProxy } from '../shared/proxy/sync';
 import { BinanceStreamClient } from './websoket';
+import { ccxtTickerAdapter } from '../shared/adapters/ticker';
+import { ccxtBalanceAdapter } from '../shared/adapters/balance';
+import { ccxtOrderAdapter } from '../shared/adapters/order';
 
 export class Binance extends BaseClass implements Tradekit {
   protected exchange = new ccxt.binance();
@@ -40,7 +50,7 @@ export class Binance extends BaseClass implements Tradekit {
   }: GetTikerOptions): Promise<TradekitResult<Ticker>> {
     try {
       const tiker = await this.exchange.fetchTicker(symbol);
-      return ok(tiker);
+      return ccxtTickerAdapter(tiker);
     } catch (e) {
       return err(handleError(e));
     } finally {
@@ -53,7 +63,8 @@ export class Binance extends BaseClass implements Tradekit {
   }: GetTikersOptions): Promise<TradekitResult<Ticker[]>> {
     try {
       const tikers = await this.exchange.fetchTickers(symbols);
-      return ok(Object.values(tikers));
+      const res = Object.values(tikers).map(ccxtTickerAdapter);
+      return Result.combine(res);
     } catch (e) {
       return err(handleError(e));
     } finally {
@@ -79,31 +90,19 @@ export class Binance extends BaseClass implements Tradekit {
 
   public async getBalance(
     opts?: GetBalanceOptions
-  ): Promise<TradekitResult<Balances>> {
+  ): Promise<TradekitResult<Balance>> {
     try {
-      const balance = await this.exchange.fetchBalance();
+      const balance = ccxtBalanceAdapter(await this.exchange.fetchBalance());
 
       if (opts?.currencies) {
-        const filtered: Balances = {
-          free: {} as Balance,
-          used: {} as Balance,
-          total: {} as Balance,
-          info: balance.info,
-          datetime: balance.datetime,
-        };
-
-        for (const currency of opts.currencies) {
-          if (currency in balance.free) {
-            filtered.free[currency as keyof Balance] =
-              balance.free[currency as keyof Balance];
-            filtered.used[currency as keyof Balance] =
-              balance.used[currency as keyof Balance];
-            filtered.total[currency as keyof Balance] =
-              balance.total[currency as keyof Balance];
+        const currencies = opts.currencies;
+        const filteredCurrencies: { [currency: string]: CurrencyBalance } = {};
+        for (const currency in balance.currencies) {
+          if (currencies.includes(currency)) {
+            filteredCurrencies[currency] = balance.currencies[currency];
           }
         }
-
-        return ok(filtered);
+        balance.currencies = filteredCurrencies;
       }
 
       return ok(balance);
@@ -172,9 +171,8 @@ export class Binance extends BaseClass implements Tradekit {
       while (Date.now() - startTime < timeOut) {
         await new Promise(resolve => setTimeout(resolve, 1000));
         const orders = await this.exchange.fetchOpenOrders(symbol);
-        if (orders.find(o => o.id === order.id) === undefined) {
-          return ok(order);
-        }
+        if (orders.find(o => o.id === order.id) === undefined)
+          return ccxtOrderAdapter(order);
       }
       await this.exchange.cancelOrder(order.id);
       return err({
@@ -222,9 +220,8 @@ export class Binance extends BaseClass implements Tradekit {
       while (Date.now() - startTime < timeOut) {
         await new Promise(resolve => setTimeout(resolve, 1000));
         const orders = await this.exchange.fetchOpenOrders(symbol);
-        if (orders.find(o => o.id === order.id) === undefined) {
-          return ok(order);
-        }
+        if (orders.find(o => o.id === order.id) === undefined)
+          return ccxtOrderAdapter(order);
       }
       await this.exchange.cancelOrder(order.id);
       return err({
@@ -242,8 +239,7 @@ export class Binance extends BaseClass implements Tradekit {
   }
 
   private syncProxy() {
-    this.rotateProxy();
-    this.getCurrentProxy().match(
+    this.rotateProxy().match(
       proxy => {
         this.exchange = syncCCXTProxy(this.exchange, proxy);
       },
